@@ -1,0 +1,91 @@
+﻿@using SkiaSharp.Views.Blazor
+@using SkiaSharp
+@using SubtitleEditor.Pages.SectionDef
+<div style="width: 100%; height: 100%; cursor:@Cursor">
+	<SKGLView @ref=skView 
+			  style="width: 100%; height: 100%;"
+			  OnPaintSurface="OnPaint"
+			  IgnorePixelScaling="true"
+			  @onpointermove="OnPointerMove"
+			  @onpointerdown="OnPointerDown"
+			  @onpointerup="OnPointerUp"
+			  @onpointerenter="OnPointerEnter"
+			  @onpointerleave="OnPointerLeave"
+			  @onclick="OnClick"
+	></SKGLView>
+</div>
+@code {
+	[Parameter]
+	public SKColor BackgroundColor { get; set; } = SKColors.Gray;
+
+	protected SKGLView skView = null;
+	protected SectionBar sectionBar;
+	protected string Cursor = "auto";
+
+	SKPoint lastMove;
+
+	protected override void OnInitialized()
+	{
+		sectionBar = new SectionBar(()=> skView?.Invalidate());
+
+		sectionBar.DiableDefaultEmptySectionStrip = false;
+		sectionBar.DiableDefaultSectionGroupStrip = false;
+		sectionBar.DiableDefaultSectionStrip = false;
+		sectionBar.Maximum = 120D;
+		sectionBar.Minimum = 0D;
+		sectionBar.MultiSelection = false;
+		sectionBar.SeekPosition = 0D;
+		sectionBar.ZoomEnd = 120D;
+		sectionBar.ZoomStart = 0D;
+
+		sectionBar.OnDebug += (s, e) => Console.WriteLine(e.Message);
+	}
+	protected void OnPaint(SKPaintGLSurfaceEventArgs e)
+	{
+		var canvas = e.Surface.Canvas;
+		sectionBar.Width = e.Info.Width;
+		sectionBar.Height = e.Info.Height;
+
+		canvas.Clear(BackgroundColor);
+		// Draw debug rect
+		canvas.DrawRect(lastMove.X, lastMove.Y, 10, 10, new SKPaint()
+			{
+				Typeface = SKTypeface.FromFamilyName("ARIAL"),
+				Color = SKColors.White,
+			});
+
+		if (sectionBar != null)
+			sectionBar.OnPaint(e);	
+	}
+	public void OnPointerMove(PointerEventArgs e)
+	{
+		lastMove = new SKPoint((float)e.OffsetX, (float)e.OffsetY);
+		sectionBar.NotifyMouseMove(new SectionDef.MouseEventArgs(e));
+	}
+	public void OnPointerDown(PointerEventArgs e)
+	{
+		sectionBar.NotifyMouseDown(new SectionDef.MouseEventArgs(e));
+	}
+	public void OnPointerUp(PointerEventArgs e)
+	{
+		sectionBar.NotifyMouseUp(new SectionDef.MouseEventArgs(e));
+	}
+	public void OnPointerEnter(PointerEventArgs e)
+	{
+		sectionBar.NotifyMouseEnter(new SectionDef.MouseEventArgs(e));
+	}
+	public void OnPointerLeave(PointerEventArgs e)
+	{
+		sectionBar.NotifyMouseLeave(new SectionDef.MouseEventArgs(e));
+	}
+	public void OnClick(EventArgs e)
+	{
+		sectionBar.NotifyMouseClick(new SectionDef.MouseEventArgs()
+			{
+				Location = new System.Drawing.Point((int)Math.Round(lastMove.X), (int)Math.Round(lastMove.Y)),
+				Clicks = 1,
+				Button = MouseButtons.Left
+			});
+	}
+
+}

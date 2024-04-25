@@ -1,0 +1,83 @@
+﻿<div class="base">
+	@foreach(var sc in SubtitleCells)
+	{
+		<SubtitleCell OnRightChanged="OnCellRightChanged" OnLeftChanged="OnCellLeftChanged" OnPositionChanged="OnCellPositionChanged" PreviewText="@sc.PreviewText" Left="@sc.Left" Width="@sc.Width" Index="@sc.Index"></SubtitleCell>
+	}
+</div>
+@code {
+	[Parameter] public RenderFragment ChildContent { get; set; }
+
+	List<SubtitleCell> SubtitleCells = new List<SubtitleCell>();
+	void appendSubtitleCell(string text, double left, double width)
+	{
+		var c = new SubtitleCell()
+			{
+				PreviewText = text,
+				Left = left,
+				Width = width,
+				Index = SubtitleCells.Count
+			};
+		SubtitleCells.Add(c);
+		StateHasChanged();
+	}
+	private void OnCellRightChanged((SubtitleCell sender, double change) args)
+	{
+		var _c = args.sender;
+		var change = args.change;
+		var c = SubtitleCells.Find(sc => sc.Index == _c.Index);
+		Console.WriteLine("Index: " + SubtitleCells.IndexOf(c));
+		c.Width += change;
+		var ci = SubtitleCells.IndexOf(c);
+		if (ci < SubtitleCells.Count - 1)
+		{
+			Console.WriteLine("Changing left of neighbor: " + ci + 1);
+			// change left;
+			var neighbor = SubtitleCells[ci + 1];
+			neighbor.Left -= change;
+			if (neighbor.Left < 0)
+				neighbor.Left = 0;
+		}
+	}
+	private void OnCellLeftChanged((SubtitleCell sender, double change) args)
+	{
+		var _c = args.sender;
+		var change = args.change;
+		var c = SubtitleCells.Find(sc => sc.Index == _c.Index);
+		Console.WriteLine("Index: " + SubtitleCells.IndexOf(c));
+		c.Width += change;
+		var ci = SubtitleCells.IndexOf(c);
+		if (ci < SubtitleCells.Count - 1)
+		{
+			Console.WriteLine("Changing left of neighbor: " + ci + 1);
+			// change left;
+			var neighbor = SubtitleCells[ci + 1];
+			neighbor.Left -= change;
+			if (neighbor.Left < 0)
+				neighbor.Left = 0;
+		}
+	}
+	private void OnCellPositionChanged((SubtitleCell sender, double change) args)
+	{
+		var _c = args.sender;
+		var change = args.change;
+		var c = SubtitleCells.Find(sc => sc.Index == _c.Index);
+		Console.WriteLine("Position of Index: " + SubtitleCells.IndexOf(c));
+		c.Left += change;
+		var ci = SubtitleCells.IndexOf(c);
+		if (ci < SubtitleCells.Count - 1)
+		{
+			Console.WriteLine("Changing left of neighbor: " + ci + 1);
+			// change left;
+			var neighbor = SubtitleCells[ci + 1];
+			neighbor.Left -= change;
+			if (neighbor.Left < 0)
+				neighbor.Left = 0;
+		}
+	}
+	protected override void OnInitialized()
+	{
+		base.OnInitialized();
+		appendSubtitleCell("Cell A", 50, 100);
+		appendSubtitleCell("Cell B", 200, 150);
+	}
+}

@@ -1,0 +1,118 @@
+﻿<div class="base" style=" margin-left: @(Left)px; width: @(Width)px;">
+	<div id="controls-container">
+		<div class="text-container">
+			<span>@PreviewText</span>
+		</div>
+
+		<div class="mdragger"
+			 @onmousedown="middleDraggerDown"
+			 @onmousemove="middleDraggerMove"
+			 @onmouseup="middleDraggerUp"
+			 @onmouseleave="draggerLeave">
+		</div>
+		<div class="dragger left-dragger" 
+		@onmousedown="leftDraggerDown" 
+		@onmousemove="leftDraggerMove"
+			 @onmouseup="leftDraggerUp"
+			 @onmouseleave="draggerLeave">
+		</div>
+		<div class="dragger right-dragger"
+			 @onmousedown="rightDraggerDown"
+			 @onmousemove="rightDraggerMove"
+			 @onmouseup="rightDraggerUp"
+			 @onmouseleave="draggerLeave">
+		</div>
+
+	</div>
+</div>
+
+
+@code {
+	[Parameter]
+	public EventCallback<(SubtitleCell sender, double change)> OnRightChanged { get; set; }
+	[Parameter]
+	public EventCallback<(SubtitleCell sender, double change)> OnLeftChanged { get; set; }
+	[Parameter]
+	public EventCallback<(SubtitleCell sender, double change)> OnPositionChanged { get; set; }
+	[Parameter]
+	public double Width { get; set; }
+	double _left = 0;
+	[Parameter]
+	public double Left { get => _left; set { _left = value; try { StateHasChanged(); } catch { } } }
+	[Parameter]
+	public int Index { get; set; }
+
+	[Parameter]
+	public string PreviewText { get; set; } = "";
+
+	public void draggerLeave(MouseEventArgs e)
+	{
+		draggingSide = 0;
+	}
+	public int draggingSide = 0;
+	public double lastCursorPos = 0;
+	public void leftDraggerDown(MouseEventArgs e)
+	{
+		Console.WriteLine("Left Dragger Down");
+		lastCursorPos = e.PageX;
+		draggingSide = -1;
+
+	}
+	public void leftDraggerMove(MouseEventArgs e)
+	{
+		if (draggingSide != -1)
+			return;
+		Console.WriteLine("Left Dragger Move");
+		var change = e.PageX - lastCursorPos;
+		lastCursorPos = e.PageX;
+		Left += change;
+		Width -= change;
+	}
+	public void leftDraggerUp(MouseEventArgs e)
+	{
+		Console.WriteLine("Left Dragger Up");
+		draggingSide = 0;
+	}
+	public void rightDraggerDown(MouseEventArgs e)
+	{
+		Console.WriteLine("Right Dragger Down");
+		lastCursorPos = e.PageX;
+		draggingSide = +1;
+
+	}
+	public async void rightDraggerMove(MouseEventArgs e)
+	{
+		if (draggingSide != +1)
+			return;
+		Console.WriteLine("Right Dragger Move");
+		var change = e.PageX - lastCursorPos;
+		lastCursorPos = e.PageX;
+		OnRightChanged.InvokeAsync((this, change)).Start();
+	}
+	public void rightDraggerUp(MouseEventArgs e)
+	{
+		Console.WriteLine("Right Dragger Up");
+		draggingSide = 0;
+	}
+	public void middleDraggerDown(MouseEventArgs e)
+	{
+		Console.WriteLine("Middle Dragger Down: " + Index);
+		lastCursorPos = e.PageX;
+		draggingSide = +2;
+
+	}
+	public async void middleDraggerMove(MouseEventArgs e)
+	{
+		if (draggingSide != +2)
+			return;
+		Console.WriteLine("Middle Dragger Move");
+		var change = e.PageX - lastCursorPos;
+		lastCursorPos = e.PageX;
+		OnPositionChanged.InvokeAsync((this, change)).Start();
+	}
+	public void middleDraggerUp(MouseEventArgs e)
+	{
+		Console.WriteLine("Middle Dragger Up");
+		draggingSide = 0;
+	}
+}
