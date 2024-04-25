@@ -81,7 +81,6 @@ namespace SubtitleEditor.Pages.SectionDef
 		public delegate void SectionModifyHandler(object sender, SectionsArgs e);
 		public delegate void OnDebugHandler(object sender, debugEventArgs e);
 		public delegate void TrimBarClickHandler(object sender, trimBarClickEventArgs e);
-		public delegate void SelectionChangedHandler(object sender, SectionsArgs e);
 		public delegate void SectionsRemovedHandler(object sender, SectionsArgs e);
 		public delegate void SectionsAddedHandler(object sender, SectionsArgs e);
 		public delegate void SeekBarHandler(object sender, SeekBarEventArgs e);
@@ -89,20 +88,19 @@ namespace SubtitleEditor.Pages.SectionDef
 		public event TrimBarClickHandler OnClick;
 		public event SectionModifyHandler SectionModifyRequest;
 		public event OnDebugHandler OnDebug;
-		public event SelectionChangedHandler SelectionChanged;
 		public event SectionsRemovedHandler SectionsRemoved;
 		public event SectionsAddedHandler SectionsAdded;
 		public event SeekBarHandler SeekPointChanged;
 		bool ddess = false, ddss = false, ddsgs = false;
-		RegionCollection bkpRegs;
 		// save the current hover section in hovSec. Update it on any mouse movements
 		int hovSec = -1;
-		double smin = 0, smax = 120 * 60, rmin = 0, rmax = 120, lastPos = 0;
-
+		double smin = 0, smax = 120 * 60, lastPos = 0;
+		public double rmax { get; set; } = 120;
+		public double rmin { get; set; } = 0;
 		section zoomSection;
 		section seekBar;
-		public RegionCollection TimeSlices { get { return sections; } }
-		public RegionCollection sections;
+		public List<section> TimeSlices { get { return sections; } }
+		public List<section> sections;
 		public event MouseEventHandler MouseEnter;
 		public event MouseEventHandler MouseMove;
 		public event MouseEventHandler MouseDown;
@@ -157,13 +155,13 @@ namespace SubtitleEditor.Pages.SectionDef
 			this.MouseUp += trimBar_MouseUp;
 			this.MouseClick += trimBar_MouseClick;
 			// default values for min and max
-			Minimum = 0;
-			Maximum = 120;
+			rmin = 0;
+			rmax = 120;
 			//default zoom section
-			zoomSection = new section(Minimum, Maximum, 0, 0, 0, 0, 0);
+			zoomSection = new section(rmin, rmax, 0, 0, 0, 0, 0);
 			seekBar = new section(0, 0, 0, 0, 0, 0, 0);
 			//init sections
-			sections = new RegionCollection(Invalidate);
+			sections = new List<section>();
 			//debug
 			zoomSection.OnDebug += zoomSection_OnDebug;
 
@@ -191,94 +189,21 @@ namespace SubtitleEditor.Pages.SectionDef
 		[Description("Determine if multi-selection is enabled")]
 		[RefreshProperties(RefreshProperties.All)]
 		public bool MultiSelection { get { return multiSel; } set { multiSel = value; } }
-		[Description("The Minimum Value of sectionbar")]
-		[RefreshProperties(RefreshProperties.All)]
-		public double Minimum
-		{
-			get { return rmin; }
-			set
-			{
-				try
-				{
-					if (value > zoomSection.Start)
-						ZoomStart = value;
-				}
-				catch { }
-				List<int> delSecs = new List<int>();
-				if (value > rmin)
-				{
-					int crsr = -1;
-					for (int i = 0; i < sections.Count; i++)
-					{
-						if (sections.secs[i].Start < value)
-						{
-							if (sections.secs[i].End <= value)
-							{ sections.RemoveAt(i); i--; delSecs.Add(crsr); continue; }
-							else
-								sections.secs[i].Start = value;
-						}
-					}
-				}
-				if (SectionsRemoved != null && delSecs.Count > 0)
-					SectionsRemoved(this, new SectionsArgs(delSecs));
-				rmin = value;
+		
 
-			}
-		}
-
-		[Description("The Maximum Value of sectionbar")]
-		[RefreshProperties(RefreshProperties.All)]
-		public double Maximum
-		{
-			get { return rmax; }
-			set
-			{
-				List<int> delSecs = new List<int>();
-				if (value < rmax)
-				{
-					int crsr = -1;
-					for (int i = 0; i < sections.Count; i++)
-					{
-						crsr++;
-						if (sections.secs[i].End > value)
-						{
-							if (sections.secs[i].Start >= value)
-							{ sections.RemoveAt(i); i--; delSecs.Add(crsr); continue; }
-							else
-								sections.secs[i].End = value;
-						}
-					}
-				}
-				if (SectionsRemoved != null && delSecs.Count > 0)
-					SectionsRemoved(this, new SectionsArgs(delSecs));
-				rmax = value;
-
-				try
-				{
-					if (value < zoomSection.End)
-						ZoomEnd = value;
-					else
-						ZoomEnd = ZoomEnd;
-				}
-				catch { }
-			}
-		}
-
-		[Description("ZoomBar start point")]
-		[RefreshProperties(RefreshProperties.All)]
 		public double ZoomStart
 		{
 			get { return zoomSection.Start; }
 			set
 			{
-				var reqWid = (double)(ZoomEnd - value) / (double)(Maximum - Minimum) * (double)Width;
-				var minWid = (double)(minZoomE) * (double)(Maximum - Minimum) / (double)Width;
+				var reqWid = (double)(ZoomEnd - value) / (double)(rmax - rmin) * (double)Width;
+				var minWid = (double)(minZoomE) * (double)(rmax - rmin) / (double)Width;
 
 				if (reqWid < minZoomE)
 					value = Math.Round(ZoomEnd - minWid, 2);
 
-				if (value < Minimum)
-					value = Minimum;
+				if (value < rmin)
+					value = rmin;
 
 				zoomSection.Start = value;
 
@@ -298,14 +223,14 @@ namespace SubtitleEditor.Pages.SectionDef
 			set
 			{
 
-				var reqWid = (double)(value - ZoomStart) / (double)(Maximum - Minimum) * (double)Width;
-				var minWid = (double)(minZoomE) * (double)(Maximum - Minimum) / (double)Width;
+				var reqWid = (double)(value - ZoomStart) / (double)(rmax - rmin) * (double)Width;
+				var minWid = (double)(minZoomE) * (double)(rmax - rmin) / (double)Width;
 
 				if (reqWid < minZoomE)
 					value = Math.Round(ZoomStart + minWid, 2);
 
-				if (value > Maximum)
-					value = Maximum;
+				if (value > rmax)
+					value = rmax;
 
 				zoomSection.End = value;
 				if (!skipUpdate)
@@ -321,7 +246,7 @@ namespace SubtitleEditor.Pages.SectionDef
 			{
 				var ans = new List<int>();
 				for (int i = 0; i < sections.Count; i++)
-					if (sections.secs[i].selected)
+					if (sections[i].selected)
 						ans.Add(i);
 				return ans;
 			}
@@ -329,7 +254,7 @@ namespace SubtitleEditor.Pages.SectionDef
 		void selSecClear()
 		{
 			for (int i = 0; i < sections.Count; i++)
-				sections.secs[i].selected = false;
+				sections[i].selected = false;
 		}
 		//set selection. both in selSec and the real section
 		public void SetSelection(params int[] inds)
@@ -340,7 +265,7 @@ namespace SubtitleEditor.Pages.SectionDef
 			//aply changes
 			for (int i = 0; i < sections.Count; i++)
 			{
-				sections.secs[i].selected = ((IList<int>)inds).Contains(i);
+				sections[i].selected = ((IList<int>)inds).Contains(i);
 			}
 			Invalidate();
 		}
@@ -364,8 +289,8 @@ namespace SubtitleEditor.Pages.SectionDef
 			if (tp == SectionBarPart.ZoomBar && hovSec == 0)
 			{
 				skipUpdate = true;
-				ZoomStart = Minimum;
-				ZoomEnd = Maximum;
+				ZoomStart = rmin;
+				ZoomEnd = rmax;
 				skipUpdate = false;
 				return;
 			}
@@ -374,8 +299,8 @@ namespace SubtitleEditor.Pages.SectionDef
 			if ((tp == SectionBarPart.OverviewBar || tp == SectionBarPart.Sections) && hovSec >= 0)
 			{
 				skipUpdate = true;
-				ZoomStart = sections.secs[hovSec].Start;
-				ZoomEnd = sections.secs[hovSec].End;
+				ZoomStart = sections[hovSec].Start;
+				ZoomEnd = sections[hovSec].End;
 				skipUpdate = false;
 				return;
 			}
@@ -387,13 +312,11 @@ namespace SubtitleEditor.Pages.SectionDef
 			for (int i = 0; i < sections.Count; i++)
 			{
 				if (selSec.Count <= 1)
-					sections.secs[i].selected = i == hovSec;
+					sections[i].selected = i == hovSec;
 				else
-					sections.secs[i].selected = sections.secs[i].selected || i == hovSec;
+					sections[i].selected = sections[i].selected || i == hovSec;
 			}
 			Invalidate();
-			if (SelectionChanged != null)
-				SelectionChanged(this, new SectionsArgs(SelectedIndices));
 
 			if (OnClick != null)
 			{
@@ -422,7 +345,7 @@ namespace SubtitleEditor.Pages.SectionDef
 					{
 						for (int i = 0; i < sections.Count; i++)
 						{
-							sections.secs[i].selected = false;
+							sections[i].selected = false;
 						}
 					}
 				}
@@ -431,7 +354,7 @@ namespace SubtitleEditor.Pages.SectionDef
 					LastClickWasOutSide = true;
 					//bool hadSel = selSec.Count > 0;
 					for (int i = 0; i < sections.Count; i++)
-					{ sections.secs[i].selected = false; }
+					{ sections[i].selected = false; }
 					//if (hadSel && SelectionChanged != null)
 					//    SelectionChanged(this, new SectionsArgs(new List<int>()));
 					if (OnClick != null) OnClick(this, new trimBarClickEventArgs(-1, e.Clicks, e.Delta, e.Location, e.Button, SectionBarPart.Sections));
@@ -442,21 +365,12 @@ namespace SubtitleEditor.Pages.SectionDef
 				{
 					if (selSec.Count < 1)
 					{
-						sections.secs[i].selected = i == hovSec;
+						sections[i].selected = i == hovSec;
 					}
 					else
 					{
-						sections.secs[i].selected = sections.secs[i].selected || i == hovSec;
+						sections[i].selected = sections[i].selected || i == hovSec;
 					}
-				}
-				if (SelectionChanged != null && !common.ListsSame(selSec, selSecBkp))
-				{
-					SelectionChanged(this, new SectionsArgs(SelectedIndices));
-				}
-				if (SelectionChanged != null && selSec.Count == 1 && LastClickWasOutSide == true)
-				{
-					SelectionChanged(this, new SectionsArgs(SelectedIndices));
-					LastClickWasOutSide = false;
 				}
 				if (OnClick != null)
 					OnClick(this, new trimBarClickEventArgs(hovSec, e.Clicks, e.Delta, e.Location, e.Button, tp));
@@ -496,18 +410,17 @@ namespace SubtitleEditor.Pages.SectionDef
 			seekBar.MouseUp();
 			for (int i = 0; i < sections.Count; i++)
 			{
-				sections.secs[i].MouseUp();
+				sections[i].MouseUp();
 			}
 			Invalidate();
 		}
 
 		void trimBar_MouseDown(object sender, MouseEventArgs e)
 		{
-			bkpRegs = TimeSlices.Clone();
 			zoomSection.MouseDown(Invalidate);
 			seekBar.MouseDown(Invalidate);
 			for (int i = 0; i < sections.Count; i++)
-			{ sections.secs[i].MouseDown(Invalidate); }
+			{ sections[i].MouseDown(Invalidate); }
 			if (tp != SectionBarPart.None)
 				tpInProcess = tp;
 			MouseMove_ISR(e.Location);
@@ -519,7 +432,7 @@ namespace SubtitleEditor.Pages.SectionDef
 			zoomSection.MouseLeave(Invalidate);
 			seekBar.MouseLeave(Invalidate);
 			for (int i = 0; i < sections.Count; i++)
-			{ sections.secs[i].MouseLeave(Invalidate); }
+			{ sections[i].MouseLeave(Invalidate); }
 			hovSec = -1;
 			tp = SectionBarPart.None;
 			DEBUG(hovSec.ToString() + ", " + selSec.ToString() + ", " + tp.ToString());
@@ -581,23 +494,23 @@ namespace SubtitleEditor.Pages.SectionDef
 				for (int j = 0; j < sections.Count; j++)
 				{
 					if (i == j) continue;
-					if (sections.secs[j].End <= sections.secs[i].Start) // is on the left
+					if (sections[j].End <= sections[i].Start) // is on the left
 					{
-						if (secMinTemp < sections.secs[j].End) //is more near to the corner
-							secMinTemp = sections.secs[j].End;
+						if (secMinTemp < sections[j].End) //is more near to the corner
+							secMinTemp = sections[j].End;
 					}
-					if (sections.secs[j].Start >= sections.secs[i].End) // is on the right
+					if (sections[j].Start >= sections[i].End) // is on the right
 					{
-						if (secMaxTemp > sections.secs[j].Start) //is more near to the corner
-							secMaxTemp = sections.secs[j].Start;
+						if (secMaxTemp > sections[j].Start) //is more near to the corner
+							secMaxTemp = sections[j].Start;
 					}
 				}
-				if (sections.secs[i].hoverOver == 0 && tp == SectionBarPart.Sections) // has centerHover
+				if (sections[i].hoverOver == 0 && tp == SectionBarPart.Sections) // has centerHover
 					hovSec = i;
-				if ((sections.secs[i].HeldComp == 0 || sections.secs[i].selected) && tp == SectionBarPart.Sections)
-					sections.secs[i].selected = true;
+				if ((sections[i].HeldComp == 0 || sections[i].selected) && tp == SectionBarPart.Sections)
+					sections[i].selected = true;
 				c =
-					sections.secs[i].MouseMove(e, smax, smin, Width, Height, Cursor, Invalidate, SectionBarPart.Sections,
+					sections[i].MouseMove(e, smax, smin, Width, Height, Cursor, Invalidate, SectionBarPart.Sections,
 					secMinTemp,
 					secMaxTemp);
 
@@ -613,7 +526,7 @@ namespace SubtitleEditor.Pages.SectionDef
 				if (hovSec == -1 && tp == SectionBarPart.OverviewBar) // check if the mouse is in  overview bar
 				{
 					double eToX = e.X / (double)Width * rmax;
-					if (eToX >= sections[i].Start && eToX <= sections.secs[i].End)
+					if (eToX >= sections[i].Start && eToX <= sections[i].End)
 						hovSec = i;
 				}
 			}
@@ -624,11 +537,6 @@ namespace SubtitleEditor.Pages.SectionDef
 			foreach (var i in selSec)
 				str += i.ToString() + " ";
 
-			if (tpInProcess == SectionBarPart.Sections)
-			{
-				if (!bkpRegs.IsSame(TimeSlices, true) && TimeSliceChanged != null)
-					TimeSliceChanged(this, new EventArgs());
-			}
 			if (hovSec == -1)
 				;
 			Console.WriteLine("tp = " + tp + ", hovSec = " + hovSec);
@@ -657,7 +565,7 @@ namespace SubtitleEditor.Pages.SectionDef
 			if (zoomSection != null)
 				zoomSection.OnPaintBefore(rmin, rmax, Width, Height - sbh, g, SectionBarPart.ZoomBar, rmin, rmax);
 			for (int i = 0; i < sections.Count; i++)
-			{ sections.secs[i].OnPaintBefore(smin, smax, Width, Height - sbh, g, SectionBarPart.Sections, rmin, rmax); }
+			{ sections[i].OnPaintBefore(smin, smax, Width, Height - sbh, g, SectionBarPart.Sections, rmin, rmax); }
 
 			//draw the grid
 			for (int i = (int)Math.Round(smin); i < smax; i++)
@@ -708,7 +616,7 @@ namespace SubtitleEditor.Pages.SectionDef
 			if (seekBar != null)
 				seekBar.OnPaintBefore(smin, smax, Width, Height, g, SectionBarPart.SeekBar, rmin, rmax); ;
 			for (int i = 0; i < sections.Count; i++)
-			{ sections.secs[i].OnPaintAfter(g); }
+			{ sections[i].OnPaintAfter(g); }
 		}
 
 	}
