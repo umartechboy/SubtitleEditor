@@ -1,18 +1,29 @@
 ﻿@page "/counter"
 
-<PageTitle>Counter</PageTitle>
+<PageTitle>Load custom data</PageTitle>
+<InputFile OnChange="HandleFileUpload" tex></InputFile>
 
-<h1>Counter</h1>
-
-<p role="status">Current count: @currentCount</p>
-
-<button class="btn btn-primary" @onclick="IncrementCount">Click me</button>
-
+@if (!string.IsNullOrEmpty(fileContent))
+{
+    <h2>File Content:</h2>
+    <pre>@fileContent</pre>
+}
 @code {
-    private int currentCount = 0;
+    private string fileContent;
 
-    private void IncrementCount()
+    private async Task HandleFileUpload(InputFileChangeEventArgs e)
     {
-        currentCount++;
+        var file = e.File;
+
+        if (file != null)
+        {
+            using (var stream = file.OpenReadStream())
+            {
+                using (var reader = new StreamReader(stream))
+                {
+                    fileContent = await reader.ReadToEndAsync();
+                }
+            }
+        }
     }
 }

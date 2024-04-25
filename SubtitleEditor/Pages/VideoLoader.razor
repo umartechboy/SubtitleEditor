@@ -1,0 +1,102 @@
+﻿@using FFmpegBlazor
+@inject IJSRuntime Runtime
+@using Microsoft.AspNetCore.Components.Forms
+@using MudBlazor
+<div style="align-content: center">
+    <center>
+        <MudFileUpload T="IBrowserFile" FilesChanged="UploadFiles">
+            <ButtonTemplate>
+                <MudButton HtmlTag="label"
+                           Variant="Variant.Filled"
+                           Color="Color.Primary"
+                           StartIcon="@Icons.Material.Filled.CloudUpload"
+                           for="@context.Id">
+                    Upload File
+                </MudButton>
+            </ButtonTemplate>
+        </MudFileUpload>
+        @if(started)
+        {
+            <MudProgressLinear Color="Color.Default" Value="@ProgressValue" />
+        }
+        <video width="300" height="200" autoplay controls src="@PreviewUrl" />
+        <h1>@Title</h1>
+    </center>
+</div>
+
+@code {
+    [Parameter]
+    public string Title { get; set; } = "Video Title";
+    [Parameter]
+    public string PreviewUrl { get; set; } = "";
+
+    int ProgressValue;
+    FFMPEG ff;
+    byte[] buffer;
+    bool started = false;
+    protected override async Task OnInitializedAsync()
+    {
+        if (FFmpegFactory.Runtime == null)
+        {
+            FFmpegFactory.Logger += l =>
+            {
+                Console.WriteLine("ffmpeg: " + l.Message);
+            };
+            FFmpegFactory.Progress += ProgressChange;
+        }
+
+        //initialize Library
+        await FFmpegFactory.Init(Runtime);
+    }
+
+
+    public async Task UploadFiles(IBrowserFile file)
+    {
+        //read all bytes
+        using var stream = file.OpenReadStream(100000000); //Max size for file that can be read
+        buffer = new byte[file.Size];
+
+        //read all bytes
+        await stream.ReadAsync(buffer);
+
+        //create a video link from buffer to that video can be played
+        PreviewUrl = FFmpegFactory.CreateURLFromBuffer(buffer, "loaded file.mp4", file.ContentType);
+
+
+
+        ProgressValue = 0;
+        started = true;
+
+        StateHasChanged();
+        //create an instance
+        ff = FFmpegFactory.CreateFFmpeg();
+        //download all dependencies from cdn
+        await ff.Load(); //parameter false means not to trigger events in ffmpeg Clase instance
+
+        if (!ff.IsLoaded) return;
+
+        //write buffer to in-memory files
+        ff.WriteFile("input.mp4", buffer);
+
+        //Pass CLI argument here equivalent to ffmpeg -i myFile.mp4 output.mp3
+        await ff.Run("-i", "input.mp4","-vf", "fps=1", "output_%04d.png");
+
+        //delete in-memory file
+        //ff.UnlinkFile("myFile.mp4");
+        //reRender DOM
+        StateHasChanged();
+    }
+    void ProgressChange(Progress m)
+    {
+        ProgressValue = (int)(m.Ratio * 100.0f);
+        // Console.WriteLine($"Progress {m.Ratio}");
+
+        if (m.Ratio == 1)
+        {
+            started = false;
+            StateHasChanged();
+        }
+        StateHasChanged();
+
+    }
+}

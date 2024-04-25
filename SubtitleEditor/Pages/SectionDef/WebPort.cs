@@ -189,7 +189,7 @@ namespace SubtitleEditor.Pages.SectionDef
 			// Create a linear gradient shader
 			SKShader shader = SKShader.CreateLinearGradient(
 				new SKPoint(x, y), // Start point (top-left corner)
-				new SKPoint(width, height), // End point (bottom-right corner)
+				new SKPoint(x + width, y), // End point (bottom-right corner)
 				colors.Select(ColorToSKColor).ToArray(), // Array of colors
 				colorPos, // Array of color stop positions
 				SKShaderTileMode.Clamp // Shader tile mode
@@ -202,7 +202,7 @@ namespace SubtitleEditor.Pages.SectionDef
 			};
 
 			// Draw a rectangle filled with the linear gradient
-			canvas.DrawRoundRect(new SKRect(0, 0, width, height), radius, radius, paint);
+			canvas.DrawRoundRect(new SKRect(x, y, x + width, y + height), radius, radius, paint);
 		}
 	}
 	public class Cursor
