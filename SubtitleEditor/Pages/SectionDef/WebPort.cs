@@ -107,7 +107,7 @@ namespace SubtitleEditor.Pages.SectionDef
 
 		public void FillEllipse(Color c, float x, float y, float w, float h)
 		{
-			canvas.DrawOval(x, y, w, h,
+			canvas.DrawOval(x + w / 2, y + h / 2, w / 2, h / 2,
 				new SKPaint()
 				{
 					Color = ColorToSKColor(c),

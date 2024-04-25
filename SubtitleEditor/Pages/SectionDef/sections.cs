@@ -428,7 +428,7 @@ namespace SubtitleEditor.Pages.SectionDef
 			// seek bar cannot be -1 or 1
 			if (HeldComp < -1 || HeldComp > 1)
 			{
-				int inTol = 1, outTol = 4;
+				int inTol = 1, outTol = 8;
 
 				if (secType == SectionBarPart.SeekBar)
 				{
@@ -446,6 +446,8 @@ namespace SubtitleEditor.Pages.SectionDef
 				}
 				else
 				{
+					if (secType == SectionBarPart.ZoomBar)
+						inTol = zbw / 2;
 					// determine a hover section. dont consider y position yet
 					if (e.X >= sToE - outTol && e.X <= sToE + inTol)
 					{
