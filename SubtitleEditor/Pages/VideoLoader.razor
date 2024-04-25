@@ -15,11 +15,21 @@
                 </MudButton>
             </ButtonTemplate>
         </MudFileUpload>
-        @if(started)
+        @if (started)
         {
-            <MudProgressLinear Color="Color.Default" Value="@ProgressValue" />
+            <div style="100%">
+                <MudProgressLinear Color ="Color.Default" Value ="@ProgressValue" />
+                <span>Loading video (@ProgressValue%)</span>
+            </div>
         }
-        <video width="300" height="200" autoplay controls src="@PreviewUrl" />
+        @if (isVideo)
+        {
+            <video width="100%" height="200px" autoplay controls src="@VideoPreviewUrl" />
+        }
+        @if (isImage)
+        {
+            <img width="100%" height="200px" src="@ImagePreviewUrl" />
+        }
         <h1>@Title</h1>
     </center>
 </div>
@@ -28,9 +38,13 @@
     [Parameter]
     public string Title { get; set; } = "Video Title";
     [Parameter]
-    public string PreviewUrl { get; set; } = "";
+    public string VideoPreviewUrl { get; set; } = "";
+    [Parameter]
+    public string ImagePreviewUrl { get; set; } = "";
 
-    int ProgressValue;
+    bool isVideo = false;
+    bool isImage = false;
+    int ProgressValue = 10;
     FFMPEG ff;
     byte[] buffer;
     bool started = false;
@@ -52,6 +66,8 @@
 
     public async Task UploadFiles(IBrowserFile file)
     {
+        isImage = false;
+        isVideo = false;
         //read all bytes
         using var stream = file.OpenReadStream(100000000); //Max size for file that can be read
         buffer = new byte[file.Size];
@@ -59,39 +75,58 @@
         //read all bytes
         await stream.ReadAsync(buffer);
 
-        //create a video link from buffer to that video can be played
-        PreviewUrl = FFmpegFactory.CreateURLFromBuffer(buffer, "loaded file.mp4", file.ContentType);
+        var ext = System.IO.Path.GetExtension(file.Name).ToLower();
+        var images = new string []{ ".jpg", ".png", ".bmp"};
+        if (images.Contains(ext)) // treat image
+        {
+            isImage = true;
+            using (var iStream = file.OpenReadStream())
+            {
+                var buffer = new byte[stream.Length];
+                await stream.ReadAsync(buffer, 0, (int)stream.Length);
+                ImagePreviewUrl = $"data:{file.ContentType};base64,{Convert.ToBase64String(buffer)}";
+            }
+        }
+        else
+        {
+            isVideo = true;
+            //create a video link from buffer to that video can be played
+            VideoPreviewUrl = FFmpegFactory.CreateURLFromBuffer(buffer, "loaded file.mp4", file.ContentType);
 
+            ProgressValue = 0;
+            started = true;
 
+            StateHasChanged();
+            //create an instance
+            ff = FFmpegFactory.CreateFFmpeg();
+            //download all dependencies from cdn
+            await ff.Load(); //parameter false means not to trigger events in ffmpeg Clase instance
 
-        ProgressValue = 0;
-        started = true;
+            if (!ff.IsLoaded) return;
 
-        StateHasChanged();
-        //create an instance
-        ff = FFmpegFactory.CreateFFmpeg();
-        //download all dependencies from cdn
-        await ff.Load(); //parameter false means not to trigger events in ffmpeg Clase instance
+            //write buffer to in-memory files
+            ff.WriteFile("input.mp4", buffer);
 
-        if (!ff.IsLoaded) return;
+            //Pass CLI argument here equivalent to ffmpeg -i myFile.mp4 output.mp3
+            await ff.Run("-i", "input.mp4", "-vf", "fps=1", "output_%04d.png");
 
-        //write buffer to in-memory files
-        ff.WriteFile("input.mp4", buffer);
-
-        //Pass CLI argument here equivalent to ffmpeg -i myFile.mp4 output.mp3
-        await ff.Run("-i", "input.mp4","-vf", "fps=1", "output_%04d.png");
-
-        //delete in-memory file
-        //ff.UnlinkFile("myFile.mp4");
-        //reRender DOM
-        StateHasChanged();
+            //delete in-memory file
+            //ff.UnlinkFile("myFile.mp4");
+            //reRender DOM
+            started = false;
+            StateHasChanged();
+        }
     }
     void ProgressChange(Progress m)
     {
         ProgressValue = (int)(m.Ratio * 100.0f);
+        if (ProgressValue < 0)
+            ProgressValue = 0;
+        else if (ProgressValue > 100)
+            ProgressValue = 100;
         // Console.WriteLine($"Progress {m.Ratio}");
 
-        if (m.Ratio == 1)
+        if (m.Ratio >= 1)
         {
             started = false;
             StateHasChanged();
