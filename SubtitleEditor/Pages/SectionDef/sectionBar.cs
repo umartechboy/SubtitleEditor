@@ -94,10 +94,12 @@ namespace SubtitleEditor.Pages.SectionDef
 		bool ddess = false, ddss = false, ddsgs = false;
 		// save the current hover section in hovSec. Update it on any mouse movements
 		int hovSec = -1;
-		double smin = 0, smax = 120 * 60, lastPos = 0;
-		public double rmax { get; set; } = 120;
-		public double rmin { get; set; } = 0;
+		public double ShowMin { get; set; } = 0;
+		public double ShowMax { get; set; } = 120 * 60;
+		public double Maximum { get; set; } = 120;
+		public double Minimum { get; set; } = 0;
 		section zoomSection;
+		double lastPos = 0;
 		section seekBar;
 		public List<section> TimeSlices { get { return sections; } }
 		public List<section> sections;
@@ -155,10 +157,10 @@ namespace SubtitleEditor.Pages.SectionDef
 			this.MouseUp += trimBar_MouseUp;
 			this.MouseClick += trimBar_MouseClick;
 			// default values for min and max
-			rmin = 0;
-			rmax = 120;
+			Minimum = 0;
+			Maximum = 120;
 			//default zoom section
-			zoomSection = new section(rmin, rmax, 0, 0, 0, 0, 0);
+			zoomSection = new section(Minimum, Maximum, 0, 0, 0, 0, 0);
 			seekBar = new section(0, 0, 0, 0, 0, 0, 0);
 			//init sections
 			sections = new List<section>();
@@ -179,8 +181,6 @@ namespace SubtitleEditor.Pages.SectionDef
 		[DefaultValue("")]
 		public bool DiableDefaultSectionGroupStrip { get { return ddsgs; } set { ddsgs = value; } }
 
-		double ShowMin { get { return smin; } set { smin = value; } }
-		double ShowMax { get { return smax; } set { smax = value; } }
 
 		[Description("The Value of seekbar")]
 		[RefreshProperties(RefreshProperties.All)]
@@ -196,14 +196,14 @@ namespace SubtitleEditor.Pages.SectionDef
 			get { return zoomSection.Start; }
 			set
 			{
-				var reqWid = (double)(ZoomEnd - value) / (double)(rmax - rmin) * (double)Width;
-				var minWid = (double)(minZoomE) * (double)(rmax - rmin) / (double)Width;
+				var reqWid = (double)(ZoomEnd - value) / (double)(Maximum - Minimum) * (double)Width;
+				var minWid = (double)(minZoomE) * (double)(Maximum - Minimum) / (double)Width;
 
 				if (reqWid < minZoomE)
 					value = Math.Round(ZoomEnd - minWid, 2);
 
-				if (value < rmin)
-					value = rmin;
+				if (value < Minimum)
+					value = Minimum;
 
 				zoomSection.Start = value;
 
@@ -223,14 +223,14 @@ namespace SubtitleEditor.Pages.SectionDef
 			set
 			{
 
-				var reqWid = (double)(value - ZoomStart) / (double)(rmax - rmin) * (double)Width;
-				var minWid = (double)(minZoomE) * (double)(rmax - rmin) / (double)Width;
+				var reqWid = (double)(value - ZoomStart) / (double)(Maximum - Minimum) * (double)Width;
+				var minWid = (double)(minZoomE) * (double)(Maximum - Minimum) / (double)Width;
 
 				if (reqWid < minZoomE)
 					value = Math.Round(ZoomStart + minWid, 2);
 
-				if (value > rmax)
-					value = rmax;
+				if (value > Maximum)
+					value = Maximum;
 
 				zoomSection.End = value;
 				if (!skipUpdate)
@@ -289,8 +289,8 @@ namespace SubtitleEditor.Pages.SectionDef
 			if (tp == SectionBarPart.ZoomBar && hovSec == 0)
 			{
 				skipUpdate = true;
-				ZoomStart = rmin;
-				ZoomEnd = rmax;
+				ZoomStart = Minimum;
+				ZoomEnd = Maximum;
 				skipUpdate = false;
 				return;
 			}
@@ -378,7 +378,7 @@ namespace SubtitleEditor.Pages.SectionDef
 			}
 			if (tp == SectionBarPart.SeekBar && seekBar.hoverOver != 0)
 			{
-				float reqVal = (float)(e.X) / (float)Width * (float)(smax - smin) + (float)smin;
+				float reqVal = (float)(e.X) / (float)Width * (float)(ShowMax - ShowMin) + (float)ShowMin;
 				seekBar.Start = reqVal;
 				Invalidate();
 				if (SeekPointChanged != null)
@@ -468,7 +468,7 @@ namespace SubtitleEditor.Pages.SectionDef
 			int over = 0;
 			if (zoomSection != null)
 			{
-				c = zoomSection.MouseMove(e, rmax, rmin, Width, Height, Cursor, Invalidate, SectionBarPart.ZoomBar, rmin, rmax);
+				c = zoomSection.MouseMove(e, Maximum, Minimum, Width, Height, Cursor, Invalidate, SectionBarPart.ZoomBar, Minimum, Maximum);
 				ShowMin = ZoomStart;
 				ShowMax = ZoomEnd;
 				if (c != Cursors.Default)
@@ -481,7 +481,7 @@ namespace SubtitleEditor.Pages.SectionDef
 				if (zoomSection.HeldComp == 0 && tp == SectionBarPart.ZoomBar)
 					selSecClear();
 			}
-			Cursor c2 = this.seekBar.MouseMove(e, smax, smin, Width, Height, Cursor, Invalidate, SectionBarPart.SeekBar, rmin, rmax);
+			Cursor c2 = this.seekBar.MouseMove(e, ShowMax, ShowMin, Width, Height, Cursor, Invalidate, SectionBarPart.SeekBar, Minimum, Maximum);
 			if (tp == SectionBarPart.SeekBar)
 				c = c2;
 
@@ -490,7 +490,7 @@ namespace SubtitleEditor.Pages.SectionDef
 			//    selSecClear();
 			for (int i = 0; i < sections.Count; i++)
 			{
-				double secMinTemp = 0, secMaxTemp = rmax;
+				double secMinTemp = 0, secMaxTemp = Maximum;
 				for (int j = 0; j < sections.Count; j++)
 				{
 					if (i == j) continue;
@@ -510,7 +510,7 @@ namespace SubtitleEditor.Pages.SectionDef
 				if ((sections[i].HeldComp == 0 || sections[i].selected) && tp == SectionBarPart.Sections)
 					sections[i].selected = true;
 				c =
-					sections[i].MouseMove(e, smax, smin, Width, Height, Cursor, Invalidate, SectionBarPart.Sections,
+					sections[i].MouseMove(e, ShowMax, ShowMin, Width, Height, Cursor, Invalidate, SectionBarPart.Sections,
 					secMinTemp,
 					secMaxTemp);
 
@@ -525,7 +525,7 @@ namespace SubtitleEditor.Pages.SectionDef
 
 				if (hovSec == -1 && tp == SectionBarPart.OverviewBar) // check if the mouse is in  overview bar
 				{
-					double eToX = e.X / (double)Width * rmax;
+					double eToX = e.X / (double)Width * Maximum;
 					if (eToX >= sections[i].Start && eToX <= sections[i].End)
 						hovSec = i;
 				}
@@ -552,10 +552,10 @@ namespace SubtitleEditor.Pages.SectionDef
 			//calculate the grid
 			int sResB = 1, sResS = 1;
 			List<int> stops = new List<int>(new int[] { 1, 10, 30, 60, 120, 300, 600 });
-			while ((smax - smin) / sResB * 25 > Width)
+			while ((ShowMax - ShowMin) / sResB * 25 > Width)
 				sResB = stops[stops.IndexOf(sResB) + 1];
 
-			while ((smax - smin) / sResS * 5 > Width)
+			while ((ShowMax - ShowMin) / sResS * 5 > Width)
 				sResS = stops[stops.IndexOf(sResS) + 1];
 			DEBUG(sResB.ToString() + ", " + sResS.ToString());
 			g.FillRectangle(
@@ -563,16 +563,16 @@ namespace SubtitleEditor.Pages.SectionDef
 				0, zsw, Width, zsw);
 			// all sections Background
 			if (zoomSection != null)
-				zoomSection.OnPaintBefore(rmin, rmax, Width, Height - sbh, g, SectionBarPart.ZoomBar, rmin, rmax);
+				zoomSection.OnPaintBefore(Minimum, Maximum, Width, Height - sbh, g, SectionBarPart.ZoomBar, Minimum, Maximum);
 			for (int i = 0; i < sections.Count; i++)
-			{ sections[i].OnPaintBefore(smin, smax, Width, Height - sbh, g, SectionBarPart.Sections, rmin, rmax); }
+			{ sections[i].OnPaintBefore(ShowMin, ShowMax, Width, Height - sbh, g, SectionBarPart.Sections, Minimum, Maximum); }
 
 			//draw the grid
-			for (int i = (int)Math.Round(smin); i < smax; i++)
+			for (int i = (int)Math.Round(ShowMin); i < ShowMax; i++)
 			{
 				if (i % sResB == 0)
 				{
-					int x = (int)Math.Round((double)(i - smin) / (smax - smin) * Width); string s = ((int)Math.Round((double)i / 60)).ToString();
+					int x = (int)Math.Round((double)(i - ShowMin) / (ShowMax - ShowMin) * Width); string s = ((int)Math.Round((double)i / 60)).ToString();
 					var bigL = Color.Black;
 					if (i % 60 != 0)
 					{
@@ -596,7 +596,7 @@ namespace SubtitleEditor.Pages.SectionDef
 				}
 				if (sResB != sResS && i % sResS == 0 && i % sResB != 0)
 				{
-					int x = (int)Math.Round((double)(i - smin) / (smax - smin) * Width);
+					int x = (int)Math.Round((double)(i - ShowMin) / (ShowMax - ShowMin) * Width);
 
 					g.DrawLine(
 						Color.FromArgb(50, 30, 30, 30), 1,
@@ -614,7 +614,7 @@ namespace SubtitleEditor.Pages.SectionDef
 				zoomSection.OnPaintAfter(g);
 
 			if (seekBar != null)
-				seekBar.OnPaintBefore(smin, smax, Width, Height, g, SectionBarPart.SeekBar, rmin, rmax); ;
+				seekBar.OnPaintBefore(ShowMin, ShowMax, Width, Height, g, SectionBarPart.SeekBar, Minimum, Maximum); ;
 			for (int i = 0; i < sections.Count; i++)
 			{ sections[i].OnPaintAfter(g); }
 		}
