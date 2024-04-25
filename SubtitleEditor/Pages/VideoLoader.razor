@@ -19,7 +19,7 @@
         {
             <div style="100%">
                 <MudProgressLinear Color ="Color.Default" Value ="@ProgressValue" />
-                <span>Loading video (@ProgressValue%)</span>
+                <span>Decoding video (@ProgressValue%)</span>
             </div>
         }
         @if (isVideo)
@@ -48,12 +48,33 @@
     FFMPEG ff;
     byte[] buffer;
     bool started = false;
+    double parsedVideoDuration = 0;
+    int parsedVideoFramesModulo = 0;
+    double parsedVideoFps = 0;
     protected override async Task OnInitializedAsync()
     {
         if (FFmpegFactory.Runtime == null)
         {
             FFmpegFactory.Logger += l =>
             {
+                // Lets try to parse info:
+                if (l.Message.StartsWith("Duration:"))
+                {
+                    var d = l.Message.Substring(10).Split(',')[0];
+                    var parts = d.Split(':', '.').Select(p => int.Parse(p)).ToArray();
+                    var h = parts[0];
+                    var m = parts[1];
+                    var s = parts[2];
+                    var f = parts[3];
+                    parsedVideoDuration = h * 3600 + m * 60 + s;
+                }
+
+                else if (l.Message.StartsWith(" fps, "))
+                {
+                    var fps = double.Parse(l.Message.Substring(l.Message.IndexOf(" fps, ")).Split(',').Last());
+                    parsedVideoFps = fps;
+                }
+
                 Console.WriteLine("ffmpeg: " + l.Message);
             };
             FFmpegFactory.Progress += ProgressChange;
@@ -68,6 +89,8 @@
     {
         isImage = false;
         isVideo = false;
+        parsedVideoDuration = 0;
+        parsedVideoFps = 0;
         //read all bytes
         using var stream = file.OpenReadStream(100000000); //Max size for file that can be read
         buffer = new byte[file.Size];
@@ -80,12 +103,7 @@
         if (images.Contains(ext)) // treat image
         {
             isImage = true;
-            using (var iStream = file.OpenReadStream())
-            {
-                var buffer = new byte[stream.Length];
-                await stream.ReadAsync(buffer, 0, (int)stream.Length);
-                ImagePreviewUrl = $"data:{file.ContentType};base64,{Convert.ToBase64String(buffer)}";
-            }
+            ImagePreviewUrl = $"data:{file.ContentType};base64,{Convert.ToBase64String(buffer)}";
         }
         else
         {
@@ -109,7 +127,24 @@
 
             //Pass CLI argument here equivalent to ffmpeg -i myFile.mp4 output.mp3
             await ff.Run("-i", "input.mp4", "-vf", "fps=1", "output_%04d.png");
-
+            if (parsedVideoFps != 0)
+            {
+                var totalFrames = parsedVideoDuration / parsedVideoFps + parsedVideoFramesModulo;
+                Console.WriteLine("Expecting " + totalFrames + " frames");
+            }
+            var frames = new List<byte[]>();
+            for (int i = 0; i <= 9999; i++)
+            {
+                try
+                {
+                    var frame = await ff.ReadFile("output_" + i.ToString().PadLeft(4, '0') + ".png");
+                    frames.Add(frame);
+                }
+                catch
+                {
+                    break;
+                }
+            }
             //delete in-memory file
             //ff.UnlinkFile("myFile.mp4");
             //reRender DOM
