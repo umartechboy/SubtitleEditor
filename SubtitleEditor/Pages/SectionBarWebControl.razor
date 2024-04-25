@@ -27,7 +27,7 @@
 	protected override void OnInitialized()
 	{
 		sectionBar = new SectionBar(()=> skView?.Invalidate());
-
+		sectionBar.sections.Add(new section(10, 20, 0));
 		sectionBar.DiableDefaultEmptySectionStrip = false;
 		sectionBar.DiableDefaultSectionGroupStrip = false;
 		sectionBar.DiableDefaultSectionStrip = false;

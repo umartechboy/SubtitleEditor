@@ -5,59 +5,8 @@ using System.Collections;
 
 namespace SubtitleEditor.Pages.SectionDef
 {
-	public class Region
-	{
-		double st = 0, en = 0;
-		public int id;
-		public float m1s = 0, m2s = 0, m3s = 0, m4s = 0;
-		public float Motor1Speed
-		{
-			get
-			{
-				return m1s;
-			}
-			set
-			{
-				m1s = value;
-			}
-		}
-		public float Motor2Speed { get { return m2s; } set { m2s = value; } }
-		public float Motor3Speed { get { return m3s; } set { m3s = value; } }
-		public float Motor4Speed { get { return m4s; } set { m4s = value; } }
-		public double Start { get { return st; } set { if (value > en) value = en; st = value; } }
-		public double Length { get { return End - Start; } }
-		public double End { get { return en; } set { if (value < st) value = st; en = value; } }
-		public int ID { get { return id; } set { id = value; } }
-		public Region(double start, double end, int id_, float m1s_, float m2s_, float m3s_, float m4s_)
-		{
-			st = start; en = end; id = id_; m1s = m1s_; m2s = m2s_; m3s = m3s_; m4s = m4s_;
-		}
-		public Region(string str)
-		{
-			str = str.ToLower();
-			var prts = str.Split(new char[] { ' ', ',', '[', ']' }, StringSplitOptions.RemoveEmptyEntries);
-
-			st = common.stringToSeconds(prts[4]);
-			en = common.stringToSeconds(prts[5]);
-			Motor1Speed = (float)Convert.ToDouble(prts[0].Substring(1));
-			Motor2Speed = (float)Convert.ToDouble(prts[1].Substring(1));
-			Motor3Speed = (float)Convert.ToDouble(prts[2].Substring(1));
-			Motor4Speed = (float)Convert.ToDouble(prts[3].Substring(1));
-		}
-		public override string ToString()
-		{
-			return String.Format("M{0} N{1} O{2} P{3} [{4}, {5}]",
-				Motor1Speed,
-				Motor2Speed,
-				Motor3Speed,
-				Motor4Speed,
-				common.timeToString((int)Math.Round(Start)),
-				common.timeToString((int)Math.Round(End)));
-		}
-	}
 	public class section
 	{
-		float m1s = 0, m2s = 0, m3s = 0, m4s = 0;
 		int minZoom = 10;
 		public bool selected = false;
 		public delegate void OnDebugHandler(object sender, debugEventArgs e);
@@ -68,7 +17,6 @@ namespace SubtitleEditor.Pages.SectionDef
 				OnDebug(this, new debugEventArgs(str));
 		}
 
-		int _id = 0;
 		public int zbw { get => SectionBar.zsw; }
 		public int sbh { get => SectionBar.sbh; }
 		public int HeldComp = -3;
@@ -124,11 +72,6 @@ namespace SubtitleEditor.Pages.SectionDef
 						(int)Math.Round(((double)this.End - this.Start) / (bMax - bMin) * Width),
 						zbw);
 
-					LinearGradientBrush b1 = new LinearGradientBrush(
-						new Rectangle(zsRec.X - 1, zsRec.Y, zsRec.Width + 2, zsRec.Height),
-						Color.Black, Color.Black, 0, false);
-					ColorBlend cb = new ColorBlend();
-
 					Color[] cNormal = new Color[] { Color.FromArgb(40, 233, 91, 50), Color.FromArgb(30, 81, 48, 235) };
 					Color[] cHover = new Color[] { Color.FromArgb(70, 233, 91, 50), Color.FromArgb(60, 81, 48, 235) };
 					Color[] cSelect = new Color[] { Color.FromArgb(220, 233, 91, 49), Color.FromArgb(180, 219, 45, 238) };
@@ -176,7 +119,6 @@ namespace SubtitleEditor.Pages.SectionDef
 					float frac = (float)Math.Max((float)10 / zsRec.Width, 0.02);
 					var positions = new[] { 0, frac, 1F - frac, 1f };
 					var colors = new Color[] { c1, c2, c2, c3 };
-					b1.InterpolationColors = cb;
 					g.FillRectangle(colors, positions, zsRec.X, zsRec.Y, zsRec.Width, zsRec.Height);
 					//
 					g.DrawRectangle(
@@ -445,42 +387,20 @@ namespace SubtitleEditor.Pages.SectionDef
 			curLoc = e;
 			return c;
 		}
-
-		public int ID
-		{ get { return _id; } set { _id = value; } }
-		public double Start
-		{ get { return _v1; } set { _v1 = value; } }
-		public double End { get { return _v2; } set { _v2 = value; } }
-		public float Motor1Speed
-		{
-			get
-			{
-				return m1s;
-			}
-			set
-			{
-				m1s = value;
-			}
-		}
-		public float Motor2Speed { get { return m2s; } set { m2s = value; } }
-		public float Motor3Speed { get { return m3s; } set { m3s = value; } }
-		public float Motor4Speed { get { return m4s; } set { m4s = value; } }
-		double _v1 = 0, _v2 = 0;
+		public int ID { get; set; } = 0;
+		public double Start { get; set; } = 0;
+		public double End { get; set; } = 0;
 		public section()
 		{
-			_v1 = 0;
-			_v2 = 0;
-			_id = 0;
+			Start = 0;
+			End = 0;
+			ID = 0;
 		}
-		public section(double v1, double v2, int id, float motor1Speed_, float motor2Speed_, float motor3Speed_, float motor4Speed_)
+		public section(double start, double end, int id)
 		{
-			_v1 = v1;
-			_v2 = v2;
-			_id = id;
-			Motor1Speed = motor1Speed_;
-			Motor2Speed = motor2Speed_;
-			Motor3Speed = motor3Speed_;
-			Motor4Speed = motor4Speed_;
+			Start = start;
+			End = end;
+			ID = id;
 		}
 	}
 	class sectionSmall

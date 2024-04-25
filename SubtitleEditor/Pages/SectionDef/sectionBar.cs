@@ -160,8 +160,8 @@ namespace SubtitleEditor.Pages.SectionDef
 			Minimum = 0;
 			Maximum = 120;
 			//default zoom section
-			zoomSection = new section(Minimum, Maximum, 0, 0, 0, 0, 0);
-			seekBar = new section(0, 0, 0, 0, 0, 0, 0);
+			zoomSection = new section(Minimum, Maximum, 0);
+			seekBar = new section(0, 0, 0);
 			//init sections
 			sections = new List<section>();
 			//debug
