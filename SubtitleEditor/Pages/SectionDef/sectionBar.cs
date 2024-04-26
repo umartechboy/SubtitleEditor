@@ -140,8 +140,12 @@ namespace SubtitleEditor.Pages.SectionDef
 			_invalidate?.Invoke();
 		}
 		Action _invalidate;
-		public int Width { get; set; }
-		public int Height { get; set; }
+		public int LabelsSectionWidth { get; set; } = 200;
+		public int LayersSectionWidth { 
+			get => Width - 200; 
+			set => Width = value + 200; }
+		public int Width { get; set; } = 400;
+        public int Height { get; set; }
 		public Cursor Cursor;
 		// the default constructor.
 		public SectionBar(Action invalidate)
@@ -149,12 +153,12 @@ namespace SubtitleEditor.Pages.SectionDef
 			this._invalidate = invalidate;
 			Cursor = new Cursor(); // give it JS Interrop later
 								   // override mouse click events and intercept others.
-			this.MouseMove += trimBar_MouseMove;
-			this.MouseEnter += trimBar_MouseEnter;
-			this.MouseLeave += trimBar_MouseLeave;
-			this.MouseDown += trimBar_MouseDown;
+			this.MouseMove += OnMouseMove;
+			this.MouseEnter += OnMouseEnter;
+			this.MouseLeave += OnMouseLeave;
+			this.MouseDown += OnMouseDown;
 			//this.DoubleClick += trimBar_DoubleClick;
-			this.MouseUp += trimBar_MouseUp;
+			this.MouseUp += OnMouseUp;
 			this.MouseClick += trimBar_MouseClick;
 			// default values for min and max
 			Minimum = 0;
@@ -196,8 +200,8 @@ namespace SubtitleEditor.Pages.SectionDef
 			get { return zoomSection.Start; }
 			set
 			{
-				var reqWid = (double)(ZoomEnd - value) / (double)(Maximum - Minimum) * (double)Width;
-				var minWid = (double)(minZoomE) * (double)(Maximum - Minimum) / (double)Width;
+				var reqWid = (double)(ZoomEnd - value) / (double)(Maximum - Minimum) * (double)LayersSectionWidth;
+				var minWid = (double)(minZoomE) * (double)(Maximum - Minimum) / (double)LayersSectionWidth;
 
 				if (reqWid < minZoomE)
 					value = Math.Round(ZoomEnd - minWid, 2);
@@ -209,7 +213,7 @@ namespace SubtitleEditor.Pages.SectionDef
 
 				if (!skipUpdate)
 				{
-					MouseMove_ISR(new Point(65000, 65000));
+					ProcessMouseMove(new Point(65000, 65000));
 					Invalidate();
 				}
 			}
@@ -223,8 +227,8 @@ namespace SubtitleEditor.Pages.SectionDef
 			set
 			{
 
-				var reqWid = (double)(value - ZoomStart) / (double)(Maximum - Minimum) * (double)Width;
-				var minWid = (double)(minZoomE) * (double)(Maximum - Minimum) / (double)Width;
+				var reqWid = (double)(value - ZoomStart) / (double)(Maximum - Minimum) * (double)LayersSectionWidth;
+				var minWid = (double)(minZoomE) * (double)(Maximum - Minimum) / (double)LayersSectionWidth;
 
 				if (reqWid < minZoomE)
 					value = Math.Round(ZoomStart + minWid, 2);
@@ -235,7 +239,7 @@ namespace SubtitleEditor.Pages.SectionDef
 				zoomSection.End = value;
 				if (!skipUpdate)
 				{
-					MouseMove_ISR(new Point(65000, 65000));
+					ProcessMouseMove(new Point(65000, 65000));
 					Invalidate();
 				}
 			}
@@ -378,7 +382,7 @@ namespace SubtitleEditor.Pages.SectionDef
 			}
 			if (tp == SectionBarPart.SeekBar && seekBar.hoverOver != 0)
 			{
-				float reqVal = (float)(e.X) / (float)Width * (float)(ShowMax - ShowMin) + (float)ShowMin;
+				float reqVal = (float)(e.X) / (float)LayersSectionWidth * (float)(ShowMax - ShowMin) + (float)ShowMin;
 				seekBar.Start = reqVal;
 				Invalidate();
 				if (SeekPointChanged != null)
@@ -394,39 +398,63 @@ namespace SubtitleEditor.Pages.SectionDef
 			DEBUG(e.Message);
 		}
 
-		void trimBar_MouseUp(object sender, MouseEventArgs e)
-		{
-			tpInProcess = SectionBarPart.None;
-			if (tp == SectionBarPart.SeekBar)
+        Point lastlocE = new Point();
+		Point quickLast = new Point();
+		void OnMouseUp(object sender, MouseEventArgs e)
+        {
+			// Lets first process layer labels
+			if (e.Location.X <= LabelsSectionWidth)
 			{
-				SeekPointChanged?.Invoke(this, new SeekBarEventArgs(SeekPosition));
+				// Process Layers labels section
+			}
+			else // Process
+			{
+				// Offset the point
+				e.Location = new Point(e.X - LabelsSectionWidth, e.Y);
+				//Process Layer Data
+				tpInProcess = SectionBarPart.None;
+				if (tp == SectionBarPart.SeekBar)
+				{
+					SeekPointChanged?.Invoke(this, new SeekBarEventArgs(SeekPosition));
+					seekBar.MouseUp();
+					return;
+				}
+				if (e.Button == MouseButtons.Right)
+					trimBar_MouseClick_ISR(e);
+
+				zoomSection.MouseUp();
 				seekBar.MouseUp();
-				return;
+				for (int i = 0; i < sections.Count; i++)
+				{
+					sections[i].MouseUp();
+				}
+				Invalidate();
 			}
-			if (e.Button == MouseButtons.Right)
-				trimBar_MouseClick_ISR(e);
+		}
 
-			zoomSection.MouseUp();
-			seekBar.MouseUp();
-			for (int i = 0; i < sections.Count; i++)
+		void OnMouseDown(object sender, MouseEventArgs e)
+        {
+			// Lets first process layer labels
+			if (e.Location.X <= LabelsSectionWidth)
 			{
-				sections[i].MouseUp();
+				// Process Layers labels section
 			}
-			Invalidate();
+			else // Process
+			{
+                // Offset the point
+                e.Location = new Point(e.X - LabelsSectionWidth, e.Y);
+                //Process Layer Data
+                zoomSection.MouseDown(Invalidate);
+				seekBar.MouseDown(Invalidate);
+				for (int i = 0; i < sections.Count; i++)
+				{ sections[i].MouseDown(Invalidate); }
+				if (tp != SectionBarPart.None)
+					tpInProcess = tp;
+				ProcessMouseMove(e.Location);
+			}
 		}
 
-		void trimBar_MouseDown(object sender, MouseEventArgs e)
-		{
-			zoomSection.MouseDown(Invalidate);
-			seekBar.MouseDown(Invalidate);
-			for (int i = 0; i < sections.Count; i++)
-			{ sections[i].MouseDown(Invalidate); }
-			if (tp != SectionBarPart.None)
-				tpInProcess = tp;
-			MouseMove_ISR(e.Location);
-		}
-
-		void trimBar_MouseLeave(object sender, EventArgs e)
+		void OnMouseLeave(object sender, EventArgs e)
 		{
 			tpInProcess = SectionBarPart.None;
 			zoomSection.MouseLeave(Invalidate);
@@ -438,27 +466,35 @@ namespace SubtitleEditor.Pages.SectionDef
 			DEBUG(hovSec.ToString() + ", " + selSec.ToString() + ", " + tp.ToString());
 		}
 
-		void trimBar_MouseEnter(object sender, EventArgs e)
+		void OnMouseEnter(object sender, EventArgs e)
 		{
 		}
-		Point lastlocE = new Point();
-		Point quickLast = new Point();
-		void trimBar_MouseMove(object sender, MouseEventArgs e)
-		{
-			if (e.X != quickLast.X || e.Y != quickLast.Y)
+		void OnMouseMove(object sender, MouseEventArgs e)
+        {
+			// Lets first process layer labels
+			if (e.Location.X <= LabelsSectionWidth)
 			{
-				MouseMove_ISR(e.Location);
-				quickLast = e.Location;
+				// Process Layers labels section
+			}
+			else // Process
+            {
+                // Offset the point
+                e.Location = new Point(e.X - LabelsSectionWidth, e.Y);
+                if (e.X != quickLast.X || e.Y != quickLast.Y)
+				{
+					ProcessMouseMove(e.Location);
+					quickLast = e.Location;
+				}
 			}
 		}
-		void MouseMove_ISR(Point e)
+		void ProcessMouseMove(Point p)
 		{
 			hovSec = -1;
-			if (e.Y < zsw)
+			if (p.Y < zsw)
 				tp = SectionBarPart.ZoomBar;
-			else if (e.Y < 2 * zsw)
+			else if (p.Y < 2 * zsw)
 				tp = SectionBarPart.OverviewBar;
-			else if (e.Y < Height - sbh)
+			else if (p.Y < Height - sbh)
 				tp = SectionBarPart.Sections;
 			else
 				tp = SectionBarPart.SeekBar;
@@ -468,7 +504,7 @@ namespace SubtitleEditor.Pages.SectionDef
 			int over = 0;
 			if (zoomSection != null)
 			{
-				c = zoomSection.MouseMove(e, Maximum, Minimum, Width, Height, Cursor, Invalidate, SectionBarPart.ZoomBar, Minimum, Maximum);
+				c = zoomSection.MouseMove(p, Maximum, Minimum, LayersSectionWidth, Height, Cursor, Invalidate, SectionBarPart.ZoomBar, Minimum, Maximum);
 				ShowMin = ZoomStart;
 				ShowMax = ZoomEnd;
 				if (c != Cursors.Default)
@@ -481,7 +517,7 @@ namespace SubtitleEditor.Pages.SectionDef
 				if (zoomSection.HeldComp == 0 && tp == SectionBarPart.ZoomBar)
 					selSecClear();
 			}
-			Cursor c2 = this.seekBar.MouseMove(e, ShowMax, ShowMin, Width, Height, Cursor, Invalidate, SectionBarPart.SeekBar, Minimum, Maximum);
+			Cursor c2 = this.seekBar.MouseMove(p, ShowMax, ShowMin, LayersSectionWidth, Height, Cursor, Invalidate, SectionBarPart.SeekBar, Minimum, Maximum);
 			if (tp == SectionBarPart.SeekBar)
 				c = c2;
 
@@ -510,7 +546,7 @@ namespace SubtitleEditor.Pages.SectionDef
 				if ((sections[i].HeldComp == 0 || sections[i].selected) && tp == SectionBarPart.Sections)
 					sections[i].selected = true;
 				c =
-					sections[i].MouseMove(e, ShowMax, ShowMin, Width, Height, Cursor, Invalidate, SectionBarPart.Sections,
+					sections[i].MouseMove(p, ShowMax, ShowMin, LayersSectionWidth, Height, Cursor, Invalidate, SectionBarPart.Sections,
 					secMinTemp,
 					secMaxTemp);
 
@@ -525,98 +561,107 @@ namespace SubtitleEditor.Pages.SectionDef
 
 				if (hovSec == -1 && tp == SectionBarPart.OverviewBar) // check if the mouse is in  overview bar
 				{
-					double eToX = e.X / (double)Width * Maximum;
+					double eToX = p.X / (double)LayersSectionWidth * Maximum;
 					if (eToX >= sections[i].Start && eToX <= sections[i].End)
 						hovSec = i;
 				}
 			}
 			if (over == 0)
 				Cursor = Cursors.Default;
-			lastlocE = new Point(e.X, e.Y);
+			lastlocE = new Point(p.X, p.Y);
 			string str = "";
 			foreach (var i in selSec)
 				str += i.ToString() + " ";
 
 			if (hovSec == -1)
 				;
-			Console.WriteLine("tp = " + tp + ", hovSec = " + hovSec);
+			//Console.WriteLine("tp = " + tp + ", hovSec = " + hovSec);
 		}
 		public void OnPaint(SKPaintGLSurfaceEventArgs e)
 		{
 			var g = Graphics.FromCanvas(e.Surface.Canvas);
 
-			//fill the sectionbar background with gradient
-			g.FillRectangle(Color.FromArgb(139, 199, 175), 0, zsw * 2, Width, Height - zsw * 2 - sbh);
-			g.FillRectangle(Color.FromArgb(200, 200, 200), 0, Height - sbh, Width, sbh);
-
-			//calculate the grid
-			int sResB = 1, sResS = 1;
-			List<int> stops = new List<int>(new int[] { 1, 10, 30, 60, 120, 300, 600 });
-			while ((ShowMax - ShowMin) / sResB * 25 > Width)
-				sResB = stops[stops.IndexOf(sResB) + 1];
-
-			while ((ShowMax - ShowMin) / sResS * 5 > Width)
-				sResS = stops[stops.IndexOf(sResS) + 1];
-			DEBUG(sResB.ToString() + ", " + sResS.ToString());
-			g.FillRectangle(
-				Color.FromArgb(200, 200, 200),
-				0, zsw, Width, zsw);
-			// all sections Background
-			if (zoomSection != null)
-				zoomSection.OnPaintBefore(Minimum, Maximum, Width, Height - sbh, g, SectionBarPart.ZoomBar, Minimum, Maximum);
-			for (int i = 0; i < sections.Count; i++)
-			{ sections[i].OnPaintBefore(ShowMin, ShowMax, Width, Height - sbh, g, SectionBarPart.Sections, Minimum, Maximum); }
-
-			//draw the grid
-			for (int i = (int)Math.Round(ShowMin); i < ShowMax; i++)
+			// Draw Layers now
+			e.Surface.Canvas.Translate(LabelsSectionWidth, 0);
+			try
 			{
-				if (i % sResB == 0)
+				//fill the sectionbar background with gradient
+				g.FillRectangle(Color.FromArgb(139, 199, 175), 0, zsw * 2, LayersSectionWidth, Height - zsw * 2 - sbh);
+				g.FillRectangle(Color.FromArgb(200, 200, 200), 0, Height - sbh, LayersSectionWidth, sbh);
+
+				//calculate the grid
+				int sResB = 1, sResS = 1;
+				List<int> stops = new List<int>(new int[] { 1, 10, 30, 60, 120, 300, 600 });
+				while ((ShowMax - ShowMin) / sResB * 25 > LayersSectionWidth)
+					sResB = stops[stops.IndexOf(sResB) + 1];
+
+				while ((ShowMax - ShowMin) / sResS * 5 > LayersSectionWidth)
+					sResS = stops[stops.IndexOf(sResS) + 1];
+				DEBUG(sResB.ToString() + ", " + sResS.ToString());
+				g.FillRectangle(
+					Color.FromArgb(200, 200, 200),
+					0, zsw, LayersSectionWidth, zsw);
+				// all sections Background
+				if (zoomSection != null)
+					zoomSection.OnPaintBefore(Minimum, Maximum, LayersSectionWidth, Height - sbh, g, SectionBarPart.ZoomBar, Minimum, Maximum);
+				for (int i = 0; i < sections.Count; i++)
+				{ sections[i].OnPaintBefore(ShowMin, ShowMax, LayersSectionWidth, Height - sbh, g, SectionBarPart.Sections, Minimum, Maximum); }
+
+				//draw the grid
+				for (int i = (int)Math.Round(ShowMin); i < ShowMax; i++)
 				{
-					int x = (int)Math.Round((double)(i - ShowMin) / (ShowMax - ShowMin) * Width); string s = ((int)Math.Round((double)i / 60)).ToString();
-					var bigL = Color.Black;
-					if (i % 60 != 0)
+					if (i % sResB == 0)
 					{
-						int j = i / 60;
-						s = "A";
-						s = Math.Round((double)j).ToString() + ":" + Math.Round((double)i % 60).ToString();
-						bigL = Color.FromArgb(30, 30, 30);
+						int x = (int)Math.Round((double)(i - ShowMin) / (ShowMax - ShowMin) * LayersSectionWidth); string s = ((int)Math.Round((double)i / 60)).ToString();
+						var bigL = Color.Black;
+						if (i % 60 != 0)
+						{
+							int j = i / 60;
+							s = "A";
+							s = Math.Round((double)j).ToString() + ":" + Math.Round((double)i % 60).ToString();
+							bigL = Color.FromArgb(30, 30, 30);
+						}
+
+						g.DrawLine(
+							bigL, 1,
+							x, zsw * 2, x, (int)(Height * 0.2) + zsw * 2
+							);
+						g.DrawLine(
+							bigL, 1,
+							x, (int)(Height * 0.8) - sbh, x, Height - sbh
+							);
+
+						float sw = g.MeasureString(s, "Consolas", 7).Width;
+						g.DrawString(s, "Consolas", 7, bigL, new PointF(x - sw / 2, (float)(Height * 0.2) + zsw * 2));
 					}
+					if (sResB != sResS && i % sResS == 0 && i % sResB != 0)
+					{
+						int x = (int)Math.Round((double)(i - ShowMin) / (ShowMax - ShowMin) * LayersSectionWidth);
 
-					g.DrawLine(
-						bigL, 1,
-						x, zsw * 2, x, (int)(Height * 0.2) + zsw * 2
-						);
-					g.DrawLine(
-						bigL, 1,
-						x, (int)(Height * 0.8) - sbh, x, Height - sbh
-						);
-
-					float sw = g.MeasureString(s, "Consolas", 7).Width;
-					g.DrawString(s, "Consolas", 7, bigL, new PointF(x - sw / 2, (float)(Height * 0.2) + zsw * 2));
+						g.DrawLine(
+							Color.FromArgb(50, 30, 30, 30), 1,
+							x, zsw * 2, x, (int)(Height * 0.1) + zsw * 2
+							);
+						g.DrawLine(
+							Color.FromArgb(50, 30, 30, 30), 1,
+							x, (int)(Height * 0.9) - sbh, x, Height - sbh
+							);
+					}
 				}
-				if (sResB != sResS && i % sResS == 0 && i % sResB != 0)
-				{
-					int x = (int)Math.Round((double)(i - ShowMin) / (ShowMax - ShowMin) * Width);
 
-					g.DrawLine(
-						Color.FromArgb(50, 30, 30, 30), 1,
-						x, zsw * 2, x, (int)(Height * 0.1) + zsw * 2
-						);
-					g.DrawLine(
-						Color.FromArgb(50, 30, 30, 30), 1,
-						x, (int)(Height * 0.9) - sbh, x, Height - sbh
-						);
-				}
+				// all sections Foreground
+				if (zoomSection != null)
+					zoomSection.OnPaintAfter(g);
+
+				if (seekBar != null)
+					seekBar.OnPaintBefore(ShowMin, ShowMax, LayersSectionWidth, Height, g, SectionBarPart.SeekBar, Minimum, Maximum); ;
+				for (int i = 0; i < sections.Count; i++)
+				{ sections[i].OnPaintAfter(g); }
 			}
+			catch 
+			{ }
 
-			// all sections Foreground
-			if (zoomSection != null)
-				zoomSection.OnPaintAfter(g);
-
-			if (seekBar != null)
-				seekBar.OnPaintBefore(ShowMin, ShowMax, Width, Height, g, SectionBarPart.SeekBar, Minimum, Maximum); ;
-			for (int i = 0; i < sections.Count; i++)
-			{ sections[i].OnPaintAfter(g); }
+			e.Surface.Canvas.Translate(-LabelsSectionWidth, 0);
 		}
 
 	}
