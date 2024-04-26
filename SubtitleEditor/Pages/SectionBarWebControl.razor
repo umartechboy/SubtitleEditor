@@ -1,22 +1,32 @@
 ﻿@using SkiaSharp.Views.Blazor
 @using SkiaSharp
 @using SubtitleEditor.Pages.SectionDef
-<div style="width: 100%; height: 100%; cursor:@Cursor">
+<div style="width: 100%; height: 100%; cursor:@Cursor"
+	@onmousemove:stopPropagation="true"
+	@onmousedown:preventDefault="true"
+	@onmouseup:preventDefault="true"
+	@onmouseenter:preventDefault="true"
+	@onmouseleave:preventDefault="true"
+	@onclick:preventDefault="true">
 	<SKGLView @ref=skView 
 			  style="width: 100%; height: 100%;"
 			  OnPaintSurface="OnPaint"
 			  IgnorePixelScaling="true"
-			  @onpointermove="OnPointerMove"
-			  @onpointerdown="OnPointerDown"
-			  @onpointerup="OnPointerUp"
-			  @onpointerenter="OnPointerEnter"
-			  @onpointerleave="OnPointerLeave"
-			  @onclick="OnClick"
+			  @onmousemove="OnMouseMove"
+			  @onmousedown="OnMouseDown"
+			  @onmouseup="OnMouseUp"
+			  @onmouseenter="OnMouseEnter"
+			  @onmouseleave="OnMouseLeave"
+			  @onclick="OnClick"			  
 	></SKGLView>
 </div>
 @code {
 	[Parameter]
 	public SKColor BackgroundColor { get; set; } = SKColors.Gray;
+	[Parameter]
+	public EventCallback<double> SeekUpdate { get; set; }
+	[Parameter]
+	public double SeekPosition { get; set; }
 
 	protected SKGLView skView = null;
 	protected SectionBar sectionBar;
@@ -27,6 +37,10 @@
 	protected override void OnInitialized()
 	{
 		sectionBar = new SectionBar(()=> skView?.Invalidate());
+		sectionBar.SeekPointChanged += async (s, e) => {
+			SeekPosition = e.Value;
+			await SeekUpdate.InvokeAsync(e.Value); 
+		};
 		sectionBar.Layers[0].Add(new Clip(10, 20, 0));
 		sectionBar.Layers[1].Add(new Clip(20, 30, 0));
 		sectionBar.Layers[2].Add(new Clip(30, 40, 0));
@@ -59,24 +73,24 @@
 		if (sectionBar != null)
 			sectionBar.OnPaint(e);	
 	}
-	public void OnPointerMove(PointerEventArgs e)
+	public void OnMouseMove(Microsoft.AspNetCore.Components.Web.MouseEventArgs e)
 	{
-		lastMove = new SKPoint((float)e.OffsetX, (float)e.OffsetY);
+		lastMove = new SKPoint((float)e.OffsetX, (float)e.OffsetX);
 		sectionBar.NotifyMouseMove(new SectionDef.MouseEventArgs(e));
 	}
-	public void OnPointerDown(PointerEventArgs e)
+	public void OnMouseDown(Microsoft.AspNetCore.Components.Web.MouseEventArgs e)
 	{
 		sectionBar.NotifyMouseDown(new SectionDef.MouseEventArgs(e));
 	}
-	public void OnPointerUp(PointerEventArgs e)
+	public void OnMouseUp(Microsoft.AspNetCore.Components.Web.MouseEventArgs e)
 	{
 		sectionBar.NotifyMouseUp(new SectionDef.MouseEventArgs(e));
 	}
-	public void OnPointerEnter(PointerEventArgs e)
+	public void OnMouseEnter(Microsoft.AspNetCore.Components.Web.MouseEventArgs e)
 	{
 		sectionBar.NotifyMouseEnter(new SectionDef.MouseEventArgs(e));
 	}
-	public void OnPointerLeave(PointerEventArgs e)
+	public void OnMouseLeave(Microsoft.AspNetCore.Components.Web.MouseEventArgs e)
 	{
 		sectionBar.NotifyMouseLeave(new SectionDef.MouseEventArgs(e));
 	}

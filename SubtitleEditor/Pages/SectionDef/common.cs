@@ -9,6 +9,15 @@
 				((int)(secs % 60)).ToString().PadLeft(2, '0');
 			return s;
 		}
+		public static string timeToString(double secsD)
+		{
+			var secs = (int)secsD;
+			string s = ((int)(secs / 3600)).ToString().PadLeft(2, '0') + ":" +
+				((int)((secs / 60) % 60)).ToString().PadLeft(2, '0') + ":" +
+				((int)(secs % 60)).ToString().PadLeft(2, '0');
+			s += "." + Math.Round((secsD - secs) * 30).ToString().PadLeft(2, '0');
+			return s;
+		}
 
 		public static int stringToSeconds(string time)
 		{

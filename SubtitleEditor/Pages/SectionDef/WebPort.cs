@@ -32,6 +32,12 @@ namespace SubtitleEditor.Pages.SectionDef
 			Clicks = 1;
 			Button = e.Button == 0 ? MouseButtons.Left : (e.Button == 2 ? MouseButtons.Right : MouseButtons.Middle);
 		}
+		public MouseEventArgs(Microsoft.AspNetCore.Components.Web.MouseEventArgs e)
+		{
+			Location = new Point((int)Math.Round(e.OffsetX), (int)Math.Round(e.OffsetY));
+			Clicks = 1;
+			Button = e.Button == 0 ? MouseButtons.Left : (e.Button == 2 ? MouseButtons.Right : MouseButtons.Middle);
+		}
 	}
 	public enum Cursors
 	{

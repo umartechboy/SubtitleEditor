@@ -1,15 +1,17 @@
 ﻿@page "/"
+@using SubtitleEditor.Pages.SectionDef
 <PageTitle>Home</PageTitle>
 
-<h1>Hello, world!</h1>
-
-Welcome to your new app.
-
+<h1>@CurrentTime</h1>
 <div style="width: 100%; height: 200px;">
-<SectionBarWebControl></SectionBarWebControl>
+<SectionBarWebControl SeekUpdate="SeekUpdate"></SectionBarWebControl>
 </div>
 
 @* <TimelineContainer></TimelineContainer> *@
 
 @code{
+	public string CurrentTime {get;set;} = "";
+	public void SeekUpdate(double t){
+		CurrentTime = common.timeToString(t);
+	}
 }

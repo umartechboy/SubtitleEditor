@@ -268,7 +268,15 @@ namespace SubtitleEditor.Pages.SectionDef
 			}
 			Invalidate();
 		}
-
+		double lastSeekNotificationOn = -1;
+		void NotifySeekChange()
+		{
+			if (lastSeekNotificationOn == SeekPosition)
+				return;
+			lastSeekNotificationOn = SeekPosition;
+			if (SeekPointChanged != null)
+				SeekPointChanged(this, new SeekBarEventArgs(seekBar.Start));
+		}
 		void DEBUG(string str)
 		{
 			if (OnDebug != null)
@@ -331,8 +339,7 @@ namespace SubtitleEditor.Pages.SectionDef
 				float reqVal = (float)(e.X) / (float)LayersSectionWidth * (float)(ShowMax - ShowMin) + (float)ShowMin;
 				seekBar.Start = reqVal;
 				Invalidate();
-				if (SeekPointChanged != null)
-					SeekPointChanged(this, new SeekBarEventArgs(seekBar.Start));
+				NotifySeekChange();
 				if (OnClick != null)
 					OnClick(this, new trimBarClickEventArgs(hovSec, 1, e.Delta, e.Location, e.Button, tp));
 			}
@@ -371,7 +378,7 @@ namespace SubtitleEditor.Pages.SectionDef
 			tpInProcess = SectionBarPart.None;
 			if (tp == SectionBarPart.SeekBar)
 			{
-				SeekPointChanged?.Invoke(this, new SeekBarEventArgs(SeekPosition));
+				NotifySeekChange();
 				seekBar.MouseUp();
 				return;
 			}
@@ -532,21 +539,35 @@ namespace SubtitleEditor.Pages.SectionDef
 				foreach (var i in GetSelectedSectionIndices(layerIndex))
 					str += i.ToString() + " ";
 
-			if (hovSec == -1)
-				;
+			NotifySeekChange();
 			//Console.WriteLine("tp = " + tp + ", hovSec = " + hovSec);
 		}
 		public void OnPaint(SKPaintGLSurfaceEventArgs e)
 		{
 			var g = Graphics.FromCanvas(e.Surface.Canvas);
+			float layerHeight = (Height - zsw * 2 - sbh) / (float)Layers.Count;
+			// Draw layer labels section
+			g.FillRectangle(Color.DarkGray, 0, zsw * 2, LabelsSectionWidth, Height - zsw * 2 - sbh);
+
+			for (int layersIndex = 0; layersIndex <= Layers.Count; layersIndex++)
+			{
+				// draw layer separators
+				g.DrawLine(Color.FromArgb(130, Color.White), 1, 0, zsw * 2 - 1 + layerHeight * layersIndex, LabelsSectionWidth, zsw * 2 + layerHeight * layersIndex);
+			}
 
 			// Draw Layers now
 			e.Surface.Canvas.Translate(LabelsSectionWidth, 0);
 			try
 			{
-				//fill the sectionbar background with gradient
+				//fill the sectionbar background
 				g.FillRectangle(Color.FromArgb(139, 199, 175), 0, zsw * 2, LayersSectionWidth, Height - zsw * 2 - sbh);
 				g.FillRectangle(Color.FromArgb(200, 200, 200), 0, Height - sbh, LayersSectionWidth, sbh);
+
+				for (int layersIndex = 0; layersIndex <= Layers.Count; layersIndex++)
+				{
+					// draw layer separators
+					g.DrawLine(Color.FromArgb(130, Color.White), 1, 0, zsw * 2 - 1 + layerHeight * layersIndex, LayersSectionWidth, zsw * 2 + layerHeight * layersIndex);
+				}
 
 				//calculate the grid
 				int sResB = 1, sResS = 1;
