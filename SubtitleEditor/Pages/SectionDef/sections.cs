@@ -5,7 +5,7 @@ using System.Collections;
 
 namespace SubtitleEditor.Pages.SectionDef
 {
-	public class section
+	public class Clip
 	{
 		int minZoom = 10;
 		public bool selected = false;
@@ -390,13 +390,13 @@ namespace SubtitleEditor.Pages.SectionDef
 		public int ID { get; set; } = 0;
 		public double Start { get; set; } = 0;
 		public double End { get; set; } = 0;
-		public section()
+		public Clip()
 		{
 			Start = 0;
 			End = 0;
 			ID = 0;
 		}
-		public section(double start, double end, int id)
+		public Clip(double start, double end, int id)
 		{
 			Start = start;
 			End = end;
