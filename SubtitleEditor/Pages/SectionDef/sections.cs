@@ -217,7 +217,7 @@ namespace SubtitleEditor.Pages.SectionDef
 			g.DrawRectangle(Color.FromArgb(44, 197, 70, 0), 2, zsRec);
 
 		}
-		public Cursor MouseMove(Point e, double max, double min, int Width, int Height, Cursor c, InvalidateRef method, SectionBarPart secType, double bMin, double bigM)
+		public Cursor MouseMove(int layerIndex, int layersCount, Point e, double max, double min, int Width, int Height, Cursor c, InvalidateRef method, SectionBarPart secType, double bMin, double bigM)
 		{
 			int eToSs = (int)Math.Round((double)e.X * (max - min) / Width + min);
 			int sToE = (int)Math.Round(((double)this.Start - min) / (max - min) * Width);
@@ -271,7 +271,9 @@ namespace SubtitleEditor.Pages.SectionDef
 				// y position correction
 				if (secType == SectionBarPart.Sections)
 				{
-					if (e.Y <= ZoomBarHeight * 2 || e.Y >= Height - sbh)
+					float layerHeight = (Height - ZoomBarHeight * 2) / (float)layersCount;
+					if (e.Y <= ZoomBarHeight * 2 + layerHeight * layerIndex ||
+						e.Y >= ZoomBarHeight * 2 + layerHeight * (layerIndex + 1))
 					{
 						c = Cursors.Default;
 						hoverOver = 3;
