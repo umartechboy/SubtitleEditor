@@ -17,7 +17,7 @@ namespace SubtitleEditor.Pages.SectionDef
 				OnDebug(this, new debugEventArgs(str));
 		}
 
-		public int zbw { get => SectionBar.zsw; }
+		public int ZoomBarHeight { get => SectionBar.zsw; }
 		public int sbh { get => SectionBar.sbh; }
 		public int HeldComp = -3;
 		// 0 is center hover, -1, left edge hover, +1 is right edge hover, -2 is left section out, 2 is right section out, 3 is out of region
@@ -43,10 +43,10 @@ namespace SubtitleEditor.Pages.SectionDef
 			hoverOver = -3;
 			method();
 		}
-		Rectangle zsRec = new Rectangle();
+		RectangleF zsRec = new RectangleF();
 
 		//some items need to be painted the grid is painted.
-		public void OnPaintBefore(double min, double max, int Width, int Height, Graphics g, SectionBarPart secType, double bMin, double bMax)
+		public void OnPaintBefore(int layerIndex, int layersCount, double min, double max, int Width, int Height, Graphics g, SectionBarPart secType, double bMin, double bMax)
 		{
 			//this rect will be used for overview section
 			Rectangle zsRec2 = new Rectangle();
@@ -60,17 +60,19 @@ namespace SubtitleEditor.Pages.SectionDef
 					// End of first section on the left is min. if there is no section, min of Start of zoom Bar is min
 					// Start of first section on the right is min. if there is no section, max of Start of zoom Bar is max
 					// Width is not same as max. Width is the graphical length.
-					zsRec = new Rectangle(
+					// Stays the same for all layers
+					float layerHeight = (Height - ZoomBarHeight * 2) / (float)layersCount;
+					zsRec = new RectangleF(
 						(int)Math.Round(((double)this.Start - min) / (max - min) * Width),
-						zbw * 2 + 1,
+						ZoomBarHeight * 2 + layerHeight * layerIndex,
 						(int)Math.Round(((double)this.End - this.Start) / (max - min) * Width),
-						Height - zbw * 2 - 1);
+						layerHeight - 1);
 					//
 					zsRec2 = new Rectangle(
 						(int)Math.Round(((double)this.Start - bMin) / (bMax - bMin) * Width),
-						zbw,
+						ZoomBarHeight,
 						(int)Math.Round(((double)this.End - this.Start) / (bMax - bMin) * Width),
-						zbw);
+						ZoomBarHeight);
 
 					Color[] cNormal = new Color[] { Color.FromArgb(40, 233, 91, 50), Color.FromArgb(30, 81, 48, 235) };
 					Color[] cHover = new Color[] { Color.FromArgb(70, 233, 91, 50), Color.FromArgb(60, 81, 48, 235) };
@@ -80,6 +82,7 @@ namespace SubtitleEditor.Pages.SectionDef
 					Color c1 = cNormal[ID];
 					Color c2 = c1;
 					Color c3 = c1;
+
 					//hover colors
 					if (hoverOver == 1)
 						c3 = cHover[ID];
@@ -123,8 +126,8 @@ namespace SubtitleEditor.Pages.SectionDef
 					//
 					g.DrawRectangle(
 						c2, 1,
-						zsRec2.X, zsRec2.Y, Math.Max(zsRec2.Width, 1), zbw);
-					g.FillRectangle(selected ? cSelect[ID] : cNormal[ID], zsRec2.X, zsRec2.Y, zsRec2.Width, zbw);
+						zsRec2.X, zsRec2.Y, Math.Max(zsRec2.Width, 1), ZoomBarHeight);
+					g.FillRectangle(selected ? cSelect[ID] : cNormal[ID], zsRec2.X, zsRec2.Y, zsRec2.Width, ZoomBarHeight);
 				}
 				else if (secType == SectionBarPart.ZoomBar)
 				{
@@ -135,11 +138,11 @@ namespace SubtitleEditor.Pages.SectionDef
 						  (int)Math.Round(((double)this.Start - min) / (max - min) * Width),
 						  0,
 						  (int)Math.Round(((double)this.End - this.Start) / (max - min) * Width),
-						  zbw);
+						  ZoomBarHeight);
 					Color c1 = Color.FromArgb(180, 20, 20, 20);
 					Color c2 = Color.FromArgb(255, 120, 120, 120);
 					Color c3 = c1;
-					int edgeWidth = zbw / 2;
+					int edgeWidth = ZoomBarHeight / 2;
 					if (hoverOver == -1)
 						c1 = Color.FromArgb(180, 80, 80, 80);
 					if (hoverOver == 0)
@@ -171,7 +174,7 @@ namespace SubtitleEditor.Pages.SectionDef
 				{
 					float bX = (float)(Start - bMin) / (float)(bMax - bMin) * (float)Width;
 					float x = (float)(Start - min) / (float)(max - min) * (float)Width;
-					double h1 = zbw * 2, h2 = Height - sbh, h3 = Height;
+					double h1 = ZoomBarHeight * 2, h2 = Height - sbh, h3 = Height;
 					Color c = Color.FromArgb(120, 0, 0, 0);
 					Color cp = c;
 					Color cf = Color.FromArgb(80, 30, 160, 40);
@@ -195,14 +198,14 @@ namespace SubtitleEditor.Pages.SectionDef
 					// The seekbar
 					g.DrawRectangle(cp, 1, x - 10, Height - sbh, 20, sbh, 5);
 					g.FillRectangle(cf, x - 10, Height - sbh, 20, sbh, 5);
-					g.DrawLine(cf, 4, x, zbw * 2, x, Height - zbw);
-					g.DrawLine(cp, 2, x, zbw * 2, x, Height - zbw);
+					g.DrawLine(cf, 4, x, ZoomBarHeight * 2, x, Height - ZoomBarHeight);
+					g.DrawLine(cp, 2, x, ZoomBarHeight * 2, x, Height - ZoomBarHeight);
 
 
 					g.DrawPolygon(cp, 1F, new PointF[]{
-					new PointF(bX,2*zbw),
-					new PointF(bX - zbw/2, zbw),
-					new PointF (bX+zbw/2, zbw)});
+					new PointF(bX,2*ZoomBarHeight),
+					new PointF(bX - ZoomBarHeight/2, ZoomBarHeight),
+					new PointF (bX+ZoomBarHeight/2, ZoomBarHeight)});
 
 				}
 			}
@@ -244,7 +247,7 @@ namespace SubtitleEditor.Pages.SectionDef
 				else
 				{
 					if (secType == SectionBarPart.ZoomBar)
-						inTol = zbw / 2;
+						inTol = ZoomBarHeight / 2;
 					// determine a hover section. dont consider y position yet
 					if (e.X >= sToE - outTol && e.X <= sToE + inTol)
 					{
@@ -268,7 +271,7 @@ namespace SubtitleEditor.Pages.SectionDef
 				// y position correction
 				if (secType == SectionBarPart.Sections)
 				{
-					if (e.Y <= zbw * 2 || e.Y >= Height - sbh)
+					if (e.Y <= ZoomBarHeight * 2 || e.Y >= Height - sbh)
 					{
 						c = Cursors.Default;
 						hoverOver = 3;
@@ -276,7 +279,7 @@ namespace SubtitleEditor.Pages.SectionDef
 				}
 				else if (secType == SectionBarPart.ZoomBar)
 				{
-					if (e.Y > zbw)
+					if (e.Y > ZoomBarHeight)
 					{
 						c = Cursors.Default;
 						hoverOver = 3;

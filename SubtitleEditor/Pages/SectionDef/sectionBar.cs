@@ -101,8 +101,7 @@ namespace SubtitleEditor.Pages.SectionDef
 		Clip zoomSection;
 		double lastPos = 0;
 		Clip seekBar;
-		public List<Clip> TimeSlices { get { return Layers; } }
-		public List<Clip> Layers;
+		public List<List<Clip>> Layers;
 		public event MouseEventHandler MouseEnter;
 		public event MouseEventHandler MouseMove;
 		public event MouseEventHandler MouseDown;
@@ -159,7 +158,7 @@ namespace SubtitleEditor.Pages.SectionDef
 			this.MouseDown += OnMouseDown;
 			//this.DoubleClick += trimBar_DoubleClick;
 			this.MouseUp += OnMouseUp;
-			this.MouseClick += trimBar_MouseClick;
+			this.MouseClick += OnMouseClick;
 			// default values for min and max
 			Minimum = 0;
 			Maximum = 120;
@@ -167,14 +166,13 @@ namespace SubtitleEditor.Pages.SectionDef
 			zoomSection = new Clip(Minimum, Maximum, 0);
 			seekBar = new Clip(0, 0, 0);
 			//init sections
-			Layers = new List<Clip>();
+			Layers = new List<List<Clip>>();
+			for (int i = 0; i < 3; i++)
+				Layers.Add(new List<Clip>());
 			//debug
 			zoomSection.OnDebug += zoomSection_OnDebug;
 
 		}
-
-		public int HoverIndex { get { return hovSec; } }
-		public int Count { get { return Layers.Count; } }
 
 		[DefaultValue("")]
 		public bool DiableDefaultEmptySectionStrip { get { return ddess; } set { ddess = value; } }
@@ -213,7 +211,7 @@ namespace SubtitleEditor.Pages.SectionDef
 
 				if (!skipUpdate)
 				{
-					ProcessMouseMove(new Point(65000, 65000));
+					ProcessLayersMouseMove(new Point(65000, 65000));
 					Invalidate();
 				}
 			}
@@ -239,43 +237,36 @@ namespace SubtitleEditor.Pages.SectionDef
 				zoomSection.End = value;
 				if (!skipUpdate)
 				{
-					ProcessMouseMove(new Point(65000, 65000));
+					ProcessLayersMouseMove(new Point(65000, 65000));
 					Invalidate();
 				}
 			}
 		}
-		List<int> selSec
+		List<int> GetSelectedSectionIndices(int layerIndex)
 		{
-			get
-			{
-				var ans = new List<int>();
-				for (int i = 0; i < Layers.Count; i++)
-					if (Layers[i].selected)
-						ans.Add(i);
-				return ans;
-			}
+			var ans = new List<int>();
+			for (int i = 0; i < Layers[layerIndex].Count; i++)
+				if (Layers[layerIndex][i].selected)
+					ans.Add(i);
+			return ans;
 		}
-		void selSecClear()
+		void ClearSelectedSections(int layerIndex)
 		{
-			for (int i = 0; i < Layers.Count; i++)
-				Layers[i].selected = false;
+			for (int i = 0; i < Layers[layerIndex].Count; i++)
+				Layers[layerIndex][i].selected = false;
 		}
 		//set selection. both in selSec and the real section
-		public void SetSelection(params int[] inds)
+		public void SetSelection(int layerIndex, params int[] inds)
 		{
 			if (!multiSel && inds.Length > 1)
 				throw new Exception("Multi selection is disabled. Kindly enable it first.");
 			// selSecClear();
 			//aply changes
-			for (int i = 0; i < Layers.Count; i++)
+			for (int i = 0; i < Layers[layerIndex].Count; i++)
 			{
-				Layers[i].selected = ((IList<int>)inds).Contains(i);
+				Layers[layerIndex][i].selected = ((IList<int>)inds).Contains(i);
 			}
 			Invalidate();
-		}
-		public List<int> SelectedIndices
-		{
-			get { return selSec; }
 		}
 
 		void DEBUG(string str)
@@ -283,114 +274,66 @@ namespace SubtitleEditor.Pages.SectionDef
 			if (OnDebug != null)
 				OnDebug(this, new debugEventArgs(str));
 		}
-
-		//intervept the double click event and forward through OnClick
-		void trimBar_DoubleClick(object sender, EventArgs e)
-		{
-			if (tp == SectionBarPart.SeekBar)
-				return;
-			// no event in case on zoom bar
-			if (tp == SectionBarPart.ZoomBar && hovSec == 0)
-			{
-				skipUpdate = true;
-				ZoomStart = Minimum;
-				ZoomEnd = Maximum;
-				skipUpdate = false;
-				return;
-			}
-			else if (tp == SectionBarPart.ZoomBar) return;
-			// no event in case of overview
-			if ((tp == SectionBarPart.OverviewBar || tp == SectionBarPart.Sections) && hovSec >= 0)
-			{
-				skipUpdate = true;
-				ZoomStart = Layers[hovSec].Start;
-				ZoomEnd = Layers[hovSec].End;
-				skipUpdate = false;
-				return;
-			}
-			else if (tp == SectionBarPart.OverviewBar) return;
-
-			//the rest of the code is executed only in case of sections
-			// just update selection before calling the OnClick event.
-			// set zoom selection to current hover section only. don't remove selection if multiple are selected already
-			for (int i = 0; i < Layers.Count; i++)
-			{
-				if (selSec.Count <= 1)
-					Layers[i].selected = i == hovSec;
-				else
-					Layers[i].selected = Layers[i].selected || i == hovSec;
-			}
-			Invalidate();
-
-			if (OnClick != null)
-			{
-				OnClick(this, new trimBarClickEventArgs(hovSec, 1, 0, lastlocE, MouseButtons.Left, tp));
-			}
-		}
-
-		// reroute mouse click to OnClick
-		void trimBar_MouseClick(object sender, MouseEventArgs e)
-		{
-			trimBar_MouseClick_ISR(e);
-		}
 		bool LastClickWasOutSide = true;
-		void trimBar_MouseClick_ISR(MouseEventArgs e)
+		void ProcessLayersMouseClick(MouseEventArgs e)
 		{
 			//change selection if necessary
 
-			if (tp == SectionBarPart.Sections)
+			for (int layerIndex = 0; layerIndex < Layers.Count; layerIndex++)
 			{
-				int[] _ar = new int[selSec.Count];
-				selSec.CopyTo(_ar, 0);
-				List<int> selSecBkp = new List<int>(); selSecBkp.AddRange(_ar);
-				if (hovSec >= 0)
+				if (tp == SectionBarPart.Sections)
 				{
-					if ((!multiSel) && (e.Button != MouseButtons.Right || selSec.Count == 1))
+					int[] _ar = new int[GetSelectedSectionIndices(layerIndex).Count];
+					GetSelectedSectionIndices(layerIndex).CopyTo(_ar, 0);
+					List<int> selSecBkp = new List<int>(); selSecBkp.AddRange(_ar);
+					if (hovSec >= 0)
 					{
-						for (int i = 0; i < Layers.Count; i++)
+						if ((!multiSel) && (e.Button != MouseButtons.Right || GetSelectedSectionIndices(layerIndex).Count == 1))
 						{
-							Layers[i].selected = false;
+							for (int i = 0; i < Layers[layerIndex].Count; i++)
+							{
+								Layers[layerIndex][i].selected = false;
+							}
 						}
 					}
-				}
-				else  // click on empty place in section bar
-				{
-					LastClickWasOutSide = true;
-					//bool hadSel = selSec.Count > 0;
-					for (int i = 0; i < Layers.Count; i++)
-					{ Layers[i].selected = false; }
-					//if (hadSel && SelectionChanged != null)
-					//    SelectionChanged(this, new SectionsArgs(new List<int>()));
-					if (OnClick != null) OnClick(this, new trimBarClickEventArgs(-1, e.Clicks, e.Delta, e.Location, e.Button, SectionBarPart.Sections));
-				}
-				// just update selection before calling the OnClick event.
-				// set zoom selection to current hover section only. don't remove selection if multiple are selected already
-				for (int i = 0; i < Layers.Count; i++)
-				{
-					if (selSec.Count < 1)
+					else  // click on empty place in section bar
 					{
-						Layers[i].selected = i == hovSec;
+						LastClickWasOutSide = true;
+						//bool hadSel = selSec.Count > 0;
+						for (int i = 0; i < Layers[layerIndex].Count; i++)
+							Layers[layerIndex][i].selected = false;
+						//if (hadSel && SelectionChanged != null)
+						//    SelectionChanged(this, new SectionsArgs(new List<int>()));
+						if (OnClick != null) OnClick(this, new trimBarClickEventArgs(-1, e.Clicks, e.Delta, e.Location, e.Button, SectionBarPart.Sections));
 					}
-					else
+					// just update selection before calling the OnClick event.
+					// set zoom selection to current hover section only. don't remove selection if multiple are selected already
+					for (int i = 0; i < Layers[layerIndex].Count; i++)
 					{
-						Layers[i].selected = Layers[i].selected || i == hovSec;
+						if (GetSelectedSectionIndices(layerIndex).Count < 1)
+						{
+							Layers[layerIndex][i].selected = i == hovSec;
+						}
+						else
+						{
+							Layers[layerIndex][i].selected = Layers[layerIndex][i].selected || i == hovSec;
+						}
 					}
+					if (OnClick != null)
+						OnClick(this, new trimBarClickEventArgs(hovSec, e.Clicks, e.Delta, e.Location, e.Button, tp));
+					return;
 				}
-				if (OnClick != null)
-					OnClick(this, new trimBarClickEventArgs(hovSec, e.Clicks, e.Delta, e.Location, e.Button, tp));
-				return;
+				if (tp == SectionBarPart.SeekBar && seekBar.hoverOver != 0)
+				{
+					float reqVal = (float)(e.X) / (float)LayersSectionWidth * (float)(ShowMax - ShowMin) + (float)ShowMin;
+					seekBar.Start = reqVal;
+					Invalidate();
+					if (SeekPointChanged != null)
+						SeekPointChanged(this, new SeekBarEventArgs(seekBar.Start));
+					if (OnClick != null)
+						OnClick(this, new trimBarClickEventArgs(hovSec, 1, e.Delta, e.Location, e.Button, tp));
+				}
 			}
-			if (tp == SectionBarPart.SeekBar && seekBar.hoverOver != 0)
-			{
-				float reqVal = (float)(e.X) / (float)LayersSectionWidth * (float)(ShowMax - ShowMin) + (float)ShowMin;
-				seekBar.Start = reqVal;
-				Invalidate();
-				if (SeekPointChanged != null)
-					SeekPointChanged(this, new SeekBarEventArgs(seekBar.Start));
-				if (OnClick != null)
-					OnClick(this, new trimBarClickEventArgs(hovSec, 1, e.Delta, e.Location, e.Button, tp));
-			}
-
 		}
 		//debug
 		void zoomSection_OnDebug(object sender, debugEventArgs e)
@@ -400,6 +343,21 @@ namespace SubtitleEditor.Pages.SectionDef
 
         Point lastlocE = new Point();
 		Point quickLast = new Point();
+		// reroute mouse click to OnClick
+		void OnMouseClick(object sender, MouseEventArgs e)
+		{
+			// Lets first process layer labels
+			if (e.Location.X <= LabelsSectionWidth)
+			{
+				// Process Layers labels section
+			}
+			else // Process
+			{
+				// Offset the point
+				e.Location = new Point(e.X - LabelsSectionWidth, e.Y);
+				ProcessLayersMouseClick(e);
+			}
+		}
 		void OnMouseUp(object sender, MouseEventArgs e)
         {
 			// Lets first process layer labels
@@ -420,14 +378,13 @@ namespace SubtitleEditor.Pages.SectionDef
 					return;
 				}
 				if (e.Button == MouseButtons.Right)
-					trimBar_MouseClick_ISR(e);
+					ProcessLayersMouseClick(e);
 
 				zoomSection.MouseUp();
 				seekBar.MouseUp();
-				for (int i = 0; i < Layers.Count; i++)
-				{
-					Layers[i].MouseUp();
-				}
+				for (int layerIndex = 0; layerIndex < Layers.Count; layerIndex++)
+					for (int i = 0; i < Layers[layerIndex].Count; i++)
+					Layers[layerIndex][i].MouseUp();
 				Invalidate();
 			}
 		}
@@ -446,11 +403,12 @@ namespace SubtitleEditor.Pages.SectionDef
                 //Process Layer Data
                 zoomSection.MouseDown(Invalidate);
 				seekBar.MouseDown(Invalidate);
-				for (int i = 0; i < Layers.Count; i++)
-				{ Layers[i].MouseDown(Invalidate); }
+				for (int layerIndex = 0; layerIndex < Layers.Count; layerIndex++)
+					for (int i = 0; i < Layers[layerIndex].Count; i++)
+						Layers[layerIndex][i].MouseDown(Invalidate);
 				if (tp != SectionBarPart.None)
 					tpInProcess = tp;
-				ProcessMouseMove(e.Location);
+				ProcessLayersMouseMove(e.Location);
 			}
 		}
 
@@ -459,11 +417,12 @@ namespace SubtitleEditor.Pages.SectionDef
 			tpInProcess = SectionBarPart.None;
 			zoomSection.MouseLeave(Invalidate);
 			seekBar.MouseLeave(Invalidate);
-			for (int i = 0; i < Layers.Count; i++)
-			{ Layers[i].MouseLeave(Invalidate); }
+			for (int layerIndex = 0; layerIndex < Layers.Count; layerIndex++)
+				for (int i = 0; i < Layers[layerIndex].Count; i++)
+					Layers[layerIndex][i].MouseLeave(Invalidate);
 			hovSec = -1;
 			tp = SectionBarPart.None;
-			DEBUG(hovSec.ToString() + ", " + selSec.ToString() + ", " + tp.ToString());
+			//DEBUG(hovSec.ToString() + ", " + GetSelectedSectionIndices.ToString() + ", " + tp.ToString());
 		}
 
 		void OnMouseEnter(object sender, EventArgs e)
@@ -482,12 +441,12 @@ namespace SubtitleEditor.Pages.SectionDef
                 e.Location = new Point(e.X - LabelsSectionWidth, e.Y);
                 if (e.X != quickLast.X || e.Y != quickLast.Y)
 				{
-					ProcessMouseMove(e.Location);
+					ProcessLayersMouseMove(e.Location);
 					quickLast = e.Location;
 				}
 			}
 		}
-		void ProcessMouseMove(Point p)
+		void ProcessLayersMouseMove(Point p)
 		{
 			hovSec = -1;
 			if (p.Y < zsw)
@@ -515,7 +474,8 @@ namespace SubtitleEditor.Pages.SectionDef
 				if (zoomSection.hoverOver == 0 && tp == SectionBarPart.ZoomBar)
 					hovSec = 0;
 				if (zoomSection.HeldComp == 0 && tp == SectionBarPart.ZoomBar)
-					selSecClear();
+					for (int layerIndex = 0; layerIndex < Layers.Count; layerIndex++)
+						ClearSelectedSections(layerIndex);
 			}
 			Cursor c2 = this.seekBar.MouseMove(p, ShowMax, ShowMin, LayersSectionWidth, Height, Cursor, Invalidate, SectionBarPart.SeekBar, Minimum, Maximum);
 			if (tp == SectionBarPart.SeekBar)
@@ -524,29 +484,30 @@ namespace SubtitleEditor.Pages.SectionDef
 			// find local limits
 			//if (tp == SectionBarPart.Sections && selSec.Count == 1) // already multi selection has started
 			//    selSecClear();
-			for (int i = 0; i < Layers.Count; i++)
+			for (int layerIndex = 0; layerIndex < Layers.Count; layerIndex++)
+				for (int i = 0; i < Layers[layerIndex].Count; i++)
 			{
 				double secMinTemp = 0, secMaxTemp = Maximum;
-				for (int j = 0; j < Layers.Count; j++)
+				for (int j = 0; j < Layers[layerIndex].Count; j++)
 				{
 					if (i == j) continue;
-					if (Layers[j].End <= Layers[i].Start) // is on the left
+					if (Layers[layerIndex][j].End <= Layers[layerIndex][i].Start) // is on the left
 					{
-						if (secMinTemp < Layers[j].End) //is more near to the corner
-							secMinTemp = Layers[j].End;
+						if (secMinTemp < Layers[layerIndex][j].End) //is more near to the corner
+							secMinTemp = Layers[layerIndex][j].End;
 					}
-					if (Layers[j].Start >= Layers[i].End) // is on the right
+					if (Layers[layerIndex][j].Start >= Layers[layerIndex][i].End) // is on the right
 					{
-						if (secMaxTemp > Layers[j].Start) //is more near to the corner
-							secMaxTemp = Layers[j].Start;
+						if (secMaxTemp > Layers[layerIndex][j].Start) //is more near to the corner
+							secMaxTemp = Layers[layerIndex][j].Start;
 					}
 				}
-				if (Layers[i].hoverOver == 0 && tp == SectionBarPart.Sections) // has centerHover
+				if (Layers[layerIndex][i].hoverOver == 0 && tp == SectionBarPart.Sections) // has centerHover
 					hovSec = i;
-				if ((Layers[i].HeldComp == 0 || Layers[i].selected) && tp == SectionBarPart.Sections)
-					Layers[i].selected = true;
+				if ((Layers[layerIndex][i].HeldComp == 0 || Layers[layerIndex][i].selected) && tp == SectionBarPart.Sections)
+					Layers[layerIndex][i].selected = true;
 				c =
-					Layers[i].MouseMove(p, ShowMax, ShowMin, LayersSectionWidth, Height, Cursor, Invalidate, SectionBarPart.Sections,
+					Layers[layerIndex][i].MouseMove(p, ShowMax, ShowMin, LayersSectionWidth, Height, Cursor, Invalidate, SectionBarPart.Sections,
 					secMinTemp,
 					secMaxTemp);
 
@@ -562,7 +523,7 @@ namespace SubtitleEditor.Pages.SectionDef
 				if (hovSec == -1 && tp == SectionBarPart.OverviewBar) // check if the mouse is in  overview bar
 				{
 					double eToX = p.X / (double)LayersSectionWidth * Maximum;
-					if (eToX >= Layers[i].Start && eToX <= Layers[i].End)
+					if (eToX >= Layers[layerIndex][i].Start && eToX <= Layers[layerIndex][i].End)
 						hovSec = i;
 				}
 			}
@@ -570,8 +531,9 @@ namespace SubtitleEditor.Pages.SectionDef
 				Cursor = Cursors.Default;
 			lastlocE = new Point(p.X, p.Y);
 			string str = "";
-			foreach (var i in selSec)
-				str += i.ToString() + " ";
+			for (int layerIndex = 0; layerIndex < Layers.Count; layerIndex++)
+				foreach (var i in GetSelectedSectionIndices(layerIndex))
+					str += i.ToString() + " ";
 
 			if (hovSec == -1)
 				;
@@ -603,9 +565,11 @@ namespace SubtitleEditor.Pages.SectionDef
 					0, zsw, LayersSectionWidth, zsw);
 				// all sections Background
 				if (zoomSection != null)
-					zoomSection.OnPaintBefore(Minimum, Maximum, LayersSectionWidth, Height - sbh, g, SectionBarPart.ZoomBar, Minimum, Maximum);
-				for (int i = 0; i < Layers.Count; i++)
-				{ Layers[i].OnPaintBefore(ShowMin, ShowMax, LayersSectionWidth, Height - sbh, g, SectionBarPart.Sections, Minimum, Maximum); }
+					zoomSection.OnPaintBefore(-1, Layers.Count, Minimum, Maximum, LayersSectionWidth, Height - sbh, g, SectionBarPart.ZoomBar, Minimum, Maximum);
+
+				for (int layerIndex = 0; layerIndex < Layers.Count; layerIndex++)
+					for (int i = 0; i < Layers[layerIndex].Count; i++)
+						Layers[layerIndex][i].OnPaintBefore(layerIndex, Layers.Count, ShowMin, ShowMax, LayersSectionWidth, Height - sbh, g, SectionBarPart.Sections, Minimum, Maximum);
 
 				//draw the grid
 				for (int i = (int)Math.Round(ShowMin); i < ShowMax; i++)
@@ -654,9 +618,11 @@ namespace SubtitleEditor.Pages.SectionDef
 					zoomSection.OnPaintAfter(g);
 
 				if (seekBar != null)
-					seekBar.OnPaintBefore(ShowMin, ShowMax, LayersSectionWidth, Height, g, SectionBarPart.SeekBar, Minimum, Maximum); ;
-				for (int i = 0; i < Layers.Count; i++)
-				{ Layers[i].OnPaintAfter(g); }
+					seekBar.OnPaintBefore(-1, Layers.Count, ShowMin, ShowMax, LayersSectionWidth, Height, g, SectionBarPart.SeekBar, Minimum, Maximum); ;
+
+				for (int layerIndex = 0; layerIndex < Layers.Count; layerIndex++)
+					for (int i = 0; i < Layers[layerIndex].Count; i++)
+						Layers[layerIndex][i].OnPaintAfter(g);
 			}
 			catch 
 			{ }
