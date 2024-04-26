@@ -27,6 +27,8 @@
 	public EventCallback<double> SeekUpdate { get; set; }
 	[Parameter]
 	public double SeekPosition { get; set; }
+	[Parameter]
+	public EventCallback<Clip> EditClip { get; set; }
 
 	protected SKGLView skView = null;
 	protected SectionBar sectionBar;

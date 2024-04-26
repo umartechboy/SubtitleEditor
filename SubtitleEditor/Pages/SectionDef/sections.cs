@@ -7,6 +7,7 @@ namespace SubtitleEditor.Pages.SectionDef
 {
 	public class Clip
 	{
+		public EditableClip Data { get; set; }
 		int minZoom = 10;
 		public bool selected = false;
 		public delegate void OnDebugHandler(object sender, debugEventArgs e);

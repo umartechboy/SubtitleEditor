@@ -1,17 +1,44 @@
 ﻿@page "/"
+@using SkiaSharp.Views.Blazor
 @using SubtitleEditor.Pages.SectionDef
 <PageTitle>Home</PageTitle>
 
+<div class="row">
+	<div class="=col-md-3">
+
+	</div>
+	<div class="=col-md-9">
+		<SkiaSharp.Views.Blazor.SKGLView 
+		@ref=renderPreview 
+		IgnorePixelScaling="true" 
+		OnPaintSurface="OnRenderPaint"
+		style="width: 100%; height: 500px;"></SkiaSharp.Views.Blazor.SKGLView>
+	</div>
+</div>
 <h1>@CurrentTime</h1>
 <div style="width: 100%; height: 200px;">
-<SectionBarWebControl SeekUpdate="SeekUpdate"></SectionBarWebControl>
+<SectionBarWebControl 
+	SeekUpdate="SeekUpdate"
+	EditClip="EditClipRequest"
+	></SectionBarWebControl>
 </div>
 
 @* <TimelineContainer></TimelineContainer> *@
 
 @code{
+	public SKGLView renderPreview { get; set; }
 	public string CurrentTime {get;set;} = "";
 	public void SeekUpdate(double t){
 		CurrentTime = common.timeToString(t);
+	}
+
+	protected void OnRenderPaint(SKPaintGLSurfaceEventArgs e)
+	{
+		var canvas = e.Surface.Canvas;
+		var width = e.Info.Width;
+		var height = e.Info.Height;
+	}
+	public void EditClipRequest(Clip clip){
+
 	}
 }
