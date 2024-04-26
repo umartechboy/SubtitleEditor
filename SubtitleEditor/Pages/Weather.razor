@@ -1,8 +1,12 @@
-﻿@page "/weather"
+﻿@using FFmpegBlazor
+@using static SubtitleEditor.Pages.VideoLoader
+@inject IJSRuntime Runtime
+
+@page "/weather"
 
 <div class="row">
 	<div class="col-md-4">
-		<VideoLoader Title="Background"></VideoLoader>
+		<ImageLoader Title="Background"></ImageLoader>
 	</div>
 	<div class="col-md-4">
 		<VideoLoader Title="Intro"></VideoLoader>
@@ -12,4 +16,30 @@
 	</div>
 </div>
 @code {
+    FFMPEG ff;
+    protected override async Task OnInitializedAsync()
+    {
+        if (FFmpegFactory.Runtime == null)
+        {
+            FFmpegFactory.Logger += l =>
+            {
+                Console.WriteLine("ffmpeg: " + l.Message);
+            };
+            //FFmpegFactory.Progress += ProgressChange;
+        }
+        await FFmpegFactory.Init(Runtime);
+    }
+    async Task GetFF(GetFFMPegArgs a)
+    {
+        if (ff == null)
+        {
+            //create an instance
+            ff = FFmpegFactory.CreateFFmpeg(new FFmpegConfig() { Log = true });
+
+        }
+        if (!ff.IsLoaded)
+            //download all dependencies from cdn
+            await ff.Load();
+        a.ff = ff;
+    }
 }
