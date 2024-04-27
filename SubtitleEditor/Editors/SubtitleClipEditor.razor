@@ -1,0 +1,12 @@
+﻿
+<MudTextField T="string" Label="Caption text" Variant="Variant.Text" @bind-Value="Text" TextChanged="@OnTextChanged" Immediate="true" AutoGrow Lines="3" HelperText="The text rendered on the screen" />
+
+ @code {
+    [Parameter]
+    public string Text { get; set; }
+    [Parameter]
+    public EventCallback<string> OnTextChanged { get; set; }
+
+    private MudTextField<string> multilineReference;
+
+}

@@ -1,6 +1,6 @@
 ﻿@using SkiaSharp.Views.Blazor
 @using SkiaSharp
-@using SubtitleEditor.Pages.SectionDef
+@using SubtitleEditor.SectionDef
 <div style="width: 100%; height: 100%; cursor:@Cursor"
 	@onmousemove:stopPropagation="true"
 	@onmousedown:preventDefault="true"
@@ -38,14 +38,15 @@
 
 	protected override void OnInitialized()
 	{
-		sectionBar = new SectionBar(()=> skView?.Invalidate());
+		sectionBar = new SectionBar(()=> skView?.Invalidate(), 5);
 		sectionBar.SeekPointChanged += async (s, e) => {
 			SeekPosition = e.Value;
 			await SeekUpdate.InvokeAsync(e.Value); 
 		};
-		sectionBar.Layers[0].Add(new Clip(10, 20, 0));
-		sectionBar.Layers[1].Add(new Clip(20, 30, 0));
-		sectionBar.Layers[2].Add(new Clip(30, 40, 0));
+		sectionBar.OnClipSelected += async (s, e) => await EditClip.InvokeAsync(e.Clip);
+		sectionBar.Layers[0].Add(new SubtitleClip(10, 20, "Hello, world"));
+		sectionBar.Layers[1].Add(new SubtitleClip(20, 30, "ABCD"));
+		sectionBar.Layers[2].Add(new SubtitleClip(30, 40, "[This is sub]"));
 		sectionBar.DiableDefaultEmptySectionStrip = false;
 		sectionBar.DiableDefaultSectionGroupStrip = false;
 		sectionBar.DiableDefaultSectionStrip = false;
@@ -77,7 +78,7 @@
 	}
 	public void OnMouseMove(Microsoft.AspNetCore.Components.Web.MouseEventArgs e)
 	{
-		lastMove = new SKPoint((float)e.OffsetX, (float)e.OffsetX);
+		lastMove = new SKPoint((float)e.OffsetX, (float)e.OffsetY);
 		sectionBar.NotifyMouseMove(new SectionDef.MouseEventArgs(e));
 	}
 	public void OnMouseDown(Microsoft.AspNetCore.Components.Web.MouseEventArgs e)
@@ -105,5 +106,12 @@
 				Button = MouseButtons.Left
 			});
 	}
-
+	public void RenderFrame(double position, SKCanvas canvas, RenderConfig config)
+	{
+		sectionBar.RenderFrame(position, canvas, config);
+	}
+	public void RenderCurrentFrame(SKCanvas canvas, RenderConfig config)
+	{
+		sectionBar.RenderFrame(SeekPosition, canvas, config);
+	}
 }

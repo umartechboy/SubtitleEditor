@@ -1,23 +1,36 @@
 ﻿@page "/"
+@using MudBlazor
 @using SkiaSharp.Views.Blazor
-@using SubtitleEditor.Pages.SectionDef
+@using SubtitleEditor.SectionDef
 <PageTitle>Home</PageTitle>
 
-<div class="row">
-	<div class="=col-md-3">
+<MudGrid>
+    <MudItem xs="8">
+        <MudPaper Class="d-flex object-center mud-width-full">
+            <SkiaSharp.Views.Blazor.SKGLView @ref=renderPreview
+                                             IgnorePixelScaling="true"
+                                             OnPaintSurface="OnRenderPaint"
+                                             style="width: 100%; height: 70vh;margin: 0px 0px 0px 0px;"></SkiaSharp.Views.Blazor.SKGLView>
+        </MudPaper>
+    </MudItem>
+    <MudItem xs="4">
+        <MudPaper Class="d-flex align-center justify-center mud-width-full py-8 px-2">
+            @if (ClipUnderEditing is SubtitleClip)
+            {
+                <SubtitleEditor.Editors.SubtitleClipEditor 
+                Text="@CurrentSubtitleClipText"
+                OnTextChanged="@OnSubtitleTextChanged"></SubtitleEditor.Editors.SubtitleClipEditor>
+            }
+        </MudPaper>
+    </MudItem>
+</MudGrid>
 
-	</div>
-	<div class="=col-md-9">
-		<SkiaSharp.Views.Blazor.SKGLView 
-		@ref=renderPreview 
-		IgnorePixelScaling="true" 
-		OnPaintSurface="OnRenderPaint"
-		style="width: 100%; height: 500px;"></SkiaSharp.Views.Blazor.SKGLView>
-	</div>
+<div class="row" style="height: 5vh;">
+<h2>@CurrentTime</h2>
 </div>
-<h1>@CurrentTime</h1>
-<div style="width: 100%; height: 200px;">
+<div style="width: 100%; height: 25vh;">
 <SectionBarWebControl 
+	@ref=sectionBarControl
 	SeekUpdate="SeekUpdate"
 	EditClip="EditClipRequest"
 	></SectionBarWebControl>
@@ -26,19 +39,64 @@
 @* <TimelineContainer></TimelineContainer> *@
 
 @code{
-	public SKGLView renderPreview { get; set; }
-	public string CurrentTime {get;set;} = "";
-	public void SeekUpdate(double t){
-		CurrentTime = common.timeToString(t);
-	}
+    SectionBarWebControl sectionBarControl { get; set; }
+    Clip ClipUnderEditing;
+    string CurrentSubtitleClipText{ get; set; }
+    void OnSubtitleTextChanged(string text)
+    {
+        if (ClipUnderEditing == null)
+            return;
+        if (ClipUnderEditing is SubtitleClip)
+        {
+            ClipUnderEditing.Source = text;
+            CurrentSubtitleClipText = text;
+            renderPreview.Invalidate();
+        }
+    }
+    public SKGLView renderPreview { get; set; }
+    public string CurrentTime {get;set;} = "";
+    public void SeekUpdate(double t){
+        CurrentTime = common.timeToString(t);
+        renderPreview.Invalidate();
+    }
 
-	protected void OnRenderPaint(SKPaintGLSurfaceEventArgs e)
-	{
-		var canvas = e.Surface.Canvas;
-		var width = e.Info.Width;
-		var height = e.Info.Height;
-	}
-	public void EditClipRequest(Clip clip){
+    protected void OnRenderPaint(SKPaintGLSurfaceEventArgs e)
+    {
+        var canvas = e.Surface.Canvas;
+        canvas.Clear();
+        float aspect = 16 / 9.0F;
+        var width = (float)e.Info.Width;
+        var height = (float)(e.Info.Width / aspect);
+        if (height > e.Info.Height)
+        {
+            height = e.Info.Height;
+            width = (float)(height * aspect);
+        }
 
-	}
+        canvas.Translate((e.Info.Width - width) / 2, (e.Info.Height - height) / 2);
+        e.Surface.Canvas.DrawRect(0, 0, width, height, new SkiaSharp.SKPaint()
+            {
+                IsStroke = true,
+                StrokeWidth = 2,
+                Color = SkiaSharp.SKColors.Gray
+            });
+        float scale = width / 100;
+        e.Surface.Canvas.Scale(scale, scale);
+
+        sectionBarControl.RenderCurrentFrame(
+            e.Surface.Canvas, new RenderConfig()
+                {
+                    TargetSize = new SkiaSharp.SKSize() { Width = width, Height = height },
+                    AspectRatio = aspect,
+                    SubTitlesFont = new SkiaSharp.SKFont(SkiaSharp.SKTypeface.FromFamilyName("ARIAL")) { Size = 10 },
+                    SubtitleColor = SkiaSharp.SKColors.Black,
+                    SubtitleLocation = new SkiaSharp.SKPoint(50, 50 / aspect)
+                });
+        e.Surface.Canvas.Scale(1 / scale, 1 / scale);
+        canvas.Translate(-(e.Info.Width - width) / 2, -(e.Info.Height - height) / 2);
+    }
+    public void EditClipRequest(Clip clip){
+        ClipUnderEditing = clip;
+        CurrentSubtitleClipText = clip.Source;
+    }
 }
