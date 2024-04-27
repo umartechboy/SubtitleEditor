@@ -20,6 +20,7 @@
 				<SubtitleEditor.Editors.SubtitleClipEditor 
 				OnAChange="SubtitleEditorOnAChange"
 				Text ="@SubtitleEditorText" 
+				FontFamily="@SubtitleEditorFontFamily"
 				StartingHH="@SubtitleEditorStartingHH" 
 				StartingMM="@SubtitleEditorStartingMM" 
 				StartingSS="@SubtitleEditorStartingSS" 
@@ -28,6 +29,7 @@
 				DurationMM="@SubtitleEditorDurationMM" 
 				DurationSS="@SubtitleEditorDurationSS" 
 				DurationFF="@SubtitleEditorDurationFF" 
+				TypeFaces="@TypeFaces"
 				></SubtitleEditor.Editors.SubtitleClipEditor>
 			}
 		</MudPaper>
@@ -46,13 +48,40 @@
 </div>
 
 @* <TimelineContainer></TimelineContainer> *@
-
+@inject HttpClient HTTP
 @code{
 	SectionBarWebControl sectionBarControl { get; set; }
 	Clip ClipUnderEditing;
 	SubtitleEditor.Editors.SubtitleClipEditor subtitleEditor;
 	public SKGLView renderPreview { get; set; }
 	public string CurrentTime {get;set;} = "";
+	static RenderConfig config;
+
+	public List<SkiaSharp.SKTypeface> TypeFaces { get; set; }
+	protected override void OnInitialized()
+	{
+		config = new RenderConfig()
+			{
+				SubTitlesFont = new SkiaSharp.SKFont(SkiaSharp.SKTypeface.FromFamilyName("Roboto")) { Size = 10 },
+				SubtitleColor = SkiaSharp.SKColors.Black,
+			};
+	}
+	protected override async Task OnInitializedAsync()
+	{
+		TypeFaces = new List<SkiaSharp.SKTypeface>();
+		var availableFont = new string[] {
+		"fonts/Jersey15-Regular.ttf",
+		"fonts/Anton-Regular.ttf"
+	};
+		foreach (var font in availableFont)
+		{
+			var bytes = await HTTP.GetByteArrayAsync(font);
+			var ms = new MemoryStream(bytes);
+			TypeFaces.Add(SkiaSharp.SKFontManager.Default.CreateTypeface(ms));
+		}
+		config.SubTitlesFont = new SkiaSharp.SKFont(TypeFaces.First());
+		SubtitleEditorFontFamily = config.SubTitlesFont.Typeface.FamilyName;
+	}
 	public void SeekUpdate(double t){
 		CurrentTime = common.timeToString(t);
 		renderPreview.Invalidate();
@@ -81,35 +110,33 @@
 		float scale = width / 100;
 		e.Surface.Canvas.Scale(scale, scale);
 
+		config.TargetSize = new SkiaSharp.SKSize() { Width = width, Height = height };
+		config.AspectRatio = aspect;
+		config.SubtitleLocation = new SkiaSharp.SKPoint(50, 50 / aspect);
+
 		sectionBarControl.RenderCurrentFrame(
-			e.Surface.Canvas, new RenderConfig()
-				{
-					TargetSize = new SkiaSharp.SKSize() { Width = width, Height = height },
-					AspectRatio = aspect,
-					SubTitlesFont = new SkiaSharp.SKFont(SkiaSharp.SKTypeface.FromFamilyName("ARIAL")) { Size = 10 },
-					SubtitleColor = SkiaSharp.SKColors.Black,
-					SubtitleLocation = new SkiaSharp.SKPoint(50, 50 / aspect)
-				});
+			e.Surface.Canvas, config);
 		e.Surface.Canvas.Scale(1 / scale, 1 / scale);
 		canvas.Translate(-(e.Info.Width - width) / 2, -(e.Info.Height - height) / 2);
 	}
 
 
 	string SubtitleEditorText { get; set; }
-	double SubtitleEditorTime{get;set;}
-	double SubtitleEditorStartingHH{get;set;}
-	double SubtitleEditorStartingMM{get;set;}
-	double SubtitleEditorStartingSS{get;set;}
-	double SubtitleEditorStartingFF{get;set;}
-	double SubtitleEditorDurationHH{get;set;}
-	double SubtitleEditorDurationMM{get;set;}
-	double SubtitleEditorDurationSS{get;set;}
-	double SubtitleEditorDurationFF{get;set;}
+	string SubtitleEditorFontFamily { get; set; }
+	double SubtitleEditorStartingHH {get;set;}
+	double SubtitleEditorStartingMM {get;set;}
+	double SubtitleEditorStartingSS {get;set;}
+	double SubtitleEditorStartingFF {get;set;}
+	double SubtitleEditorDurationHH {get;set;}
+	double SubtitleEditorDurationMM {get;set;}
+	double SubtitleEditorDurationSS {get;set;}
+	double SubtitleEditorDurationFF { get; set; }
 	public void EditClipRequest(Clip clip){
 		ClipUnderEditing = clip;
 		if (clip == null)
 			return;
 		SubtitleEditorText = ClipUnderEditing.Source;
+		SubtitleEditorFontFamily = config.SubTitlesFont.Typeface.FamilyName;
 		SubtitleEditorStartingHH = (int)(ClipUnderEditing.Start / 3600);
 		SubtitleEditorStartingMM = (int)(ClipUnderEditing.Start / 60);
 		SubtitleEditorStartingSS = (int)(ClipUnderEditing.Start);
@@ -128,6 +155,7 @@
 		if (ClipUnderEditing is SubtitleClip)
 		{
 			ClipUnderEditing.Source = SubtitleEditor.Text;
+			config.SubTitlesFont = new SkiaSharp.SKFont(TypeFaces.Find(tf => tf.FamilyName == SubtitleEditor.FontFamily));
 			double duration(double h, double m, double s, double f)
 			{
 				return h * 3600 + m * 60 + s + f / 30;
@@ -143,6 +171,7 @@
 				SubtitleEditor.DurationSS,
 				SubtitleEditor.DurationFF);
 			SubtitleEditorText = SubtitleEditor.Text;
+			SubtitleEditorFontFamily = config.SubTitlesFont.Typeface.FamilyName;
 			SubtitleEditorStartingHH = SubtitleEditor.StartingHH;
 			SubtitleEditorStartingMM = SubtitleEditor.StartingMM;
 			SubtitleEditorStartingSS = SubtitleEditor.StartingSS;

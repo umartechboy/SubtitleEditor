@@ -36,8 +36,30 @@
          <MudText GutterBottom="true">Duration</MudText>
      </MudItem>
      <MudDivider DividerType="DividerType.FullWidth" />
+     <MudItem md="8" Class="py-0">
+         <MudSelect @bind-Value="@FontFamily" TextChanged="@OnATextChanged" Label="Font Family" Variant="Variant.Outlined">
+             @foreach (var tf in TypeFaces)
+         {
+                <MudSelectItem Value="@tf.FamilyName" />
+         }
+         </MudSelect>
+     </MudItem>
+    <MudItem md="4" Class="py-0">
+
+        <MudFileUpload T="IBrowserFile" Accept=".ttf" FilesChanged="UploadTypeFace" MaximumFileCount="100">
+            <ButtonTemplate>
+                <MudButton HtmlTag="label"
+                           Variant="Variant.Outlined"
+                           Color="Color.Primary"
+                           for="@context.Id">
+                    <MudIcon Icon="@Icons.Material.Filled.FileUpload" Title="Favorite" />
+                </MudButton>
+            </ButtonTemplate>
+        </MudFileUpload>
+    </MudItem>
 </MudGrid>
- @code {
+@inject ISnackbar Snackbar
+@code {
     [Parameter] 
     public string Text { get; set; }    
     [Parameter] 
@@ -57,10 +79,32 @@
     [Parameter] 
     public double DurationFF { get; set; }
     [Parameter]
+    public string FontFamily { get; set; }
+    [Parameter]
     public EventCallback<SubtitleClipEditor> OnAChange { get; set; }
+    [Parameter]
+    public List<SkiaSharp.SKTypeface> TypeFaces { get; set; }
     protected async Task OnATextChanged(string d)
     {
         await OnAChange.InvokeAsync(this);
     }
+    protected async Task UploadTypeFace(IBrowserFile file)
+    {
+        var stream = file.OpenReadStream(10000000); 
+        var inputFileDataBuffer = new byte[file.Size];
 
+        //read all bytes
+        await stream.ReadAsync(inputFileDataBuffer);
+        var ms = new MemoryStream(inputFileDataBuffer);
+        var tf = SkiaSharp.SKTypeface.FromStream(ms);
+        if (TypeFaces.Any(t => t.FamilyName == tf.FamilyName))
+        {
+            Snackbar.Add($"\"{tf.FamilyName}\" alread added", Severity.Success);
+            return;
+        }
+
+        TypeFaces.Add(tf);
+        StateHasChanged();
+        Snackbar.Add($"\"{tf.FamilyName}\" added", Severity.Success);
+    }
 }
