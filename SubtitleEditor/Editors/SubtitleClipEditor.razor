@@ -63,6 +63,12 @@
     <MudItem md="12" Class="py-0">
         <MudSlider T="float" Value="@YPosition" ValueChanged="@OnYPositionChanged" Immediate=true Min="0" Max="100">Position</MudSlider>
     </MudItem>
+    <MudItem md="12" Class="py-0">
+        <MudSlider T="float" Value="@ShadowSize" ValueChanged="@OnShadowSizeChanged" Immediate=true Min="0" Max="10">Shadow Size</MudSlider>
+    </MudItem>
+    <MudItem md="12" Class="py-0">
+        <MudSlider T="float" Value="@ShadowDistance" ValueChanged="@OnShadowDistanceChanged" Immediate=true Min="0" Max="20">Shadow Distance</MudSlider>
+    </MudItem>
 </MudGrid>
 @inject ISnackbar Snackbar
 @code {
@@ -73,6 +79,10 @@
     public string FontFamily { get; set; }
     [Parameter]
     public float FontSize { get; set; }
+    [Parameter]
+    public float ShadowSize { get; set; }
+    [Parameter]
+    public float ShadowDistance { get; set; }
     [Parameter]
     public float YPosition { get; set; }
     [Parameter] 
@@ -104,9 +114,21 @@
         FontSize = value;
         await OnAChange.InvokeAsync(this);
     }
+
     private async Task OnYPositionChanged(float value) // Ensure correct casing (OnValueChanged)
     {
         YPosition = value;
+        await OnAChange.InvokeAsync(this);
+    }
+    private async Task OnShadowSizeChanged(float value) // Ensure correct casing (OnValueChanged)
+    {
+        ShadowSize = value;
+        await OnAChange.InvokeAsync(this);
+    }
+
+    private async Task OnShadowDistanceChanged(float value) // Ensure correct casing (OnValueChanged)
+    {
+        ShadowDistance = value;
         await OnAChange.InvokeAsync(this);
     }
     protected async Task UploadTypeFace(IBrowserFile file)

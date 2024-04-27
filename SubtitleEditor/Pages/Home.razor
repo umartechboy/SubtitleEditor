@@ -24,6 +24,8 @@
 				TypeFaces="@TypeFaces"
 				FontSize="@SubtitleEditorFontSize"
 				YPosition="@SubtitleEditorYPosition"
+				ShadowSize="@SubtitleEditorShadowSize"
+				ShadowDistance="@SubtitleEditorShadowDistance"
 				StartingHH="@SubtitleEditorStartingHH" 
 				StartingMM="@SubtitleEditorStartingMM" 
 				StartingSS="@SubtitleEditorStartingSS" 
@@ -54,7 +56,6 @@
 @code{
 	SectionBarWebControl sectionBarControl { get; set; }
 	Clip ClipUnderEditing;
-	SubtitleEditor.Editors.SubtitleClipEditor subtitleEditor;
 	public SKGLView renderPreview { get; set; }
 	public string CurrentTime {get;set;} = "";
 	static RenderConfig config;
@@ -66,7 +67,11 @@
 			{
 				SubTitlesFont = new SkiaSharp.SKFont(SkiaSharp.SKTypeface.FromFamilyName("Roboto")) { Size = 10 },
 				SubtitleColor = SkiaSharp.SKColors.Black,
-				AspectRatio = 16/9.0F
+				ShadowColor = SkiaSharp.SKColors.Blue,
+				AspectRatio = 16 / 9.0F,
+				ShadowSize = 10,
+				ShadowDistance = 10,
+				SubtitleLocation = new SkiaSharp.SKPoint(50, 50 * 9 / 16.0F)
 			};
 	}
 	protected override async Task OnInitializedAsync()
@@ -113,8 +118,6 @@
 		e.Surface.Canvas.Scale(scale, scale);
 
 		config.TargetSize = new SkiaSharp.SKSize() { Width = width, Height = height };
-		
-		config.SubtitleLocation = new SkiaSharp.SKPoint(50, 50 / config.AspectRatio);
 
 		sectionBarControl.RenderCurrentFrame(
 			e.Surface.Canvas, config);
@@ -127,6 +130,8 @@
 	string SubtitleEditorFontFamily { get; set; }
 	float SubtitleEditorFontSize { get; set; }
 	float SubtitleEditorYPosition { get; set; }
+	float SubtitleEditorShadowSize { get; set; }
+	float SubtitleEditorShadowDistance { get; set; }
 	double SubtitleEditorStartingHH {get;set;}
 	double SubtitleEditorStartingMM {get;set;}
 	double SubtitleEditorStartingSS {get;set;}
@@ -143,6 +148,8 @@
 		SubtitleEditorFontFamily = config.SubTitlesFont.Typeface.FamilyName;
 		SubtitleEditorFontSize = config.SubTitlesFont.Size;
 		SubtitleEditorYPosition = (float)(config.SubtitleLocation.Y * config.AspectRatio);
+		SubtitleEditorShadowSize = config.ShadowSize;
+		SubtitleEditorShadowDistance =config.ShadowDistance;
 		SubtitleEditorStartingHH = (int)(ClipUnderEditing.Start / 3600);
 		SubtitleEditorStartingMM = (int)(ClipUnderEditing.Start / 60);
 		SubtitleEditorStartingSS = (int)(ClipUnderEditing.Start);
@@ -164,6 +171,8 @@
 			ClipUnderEditing.Source = SubtitleEditor.Text;
 			config.SubTitlesFont = new SkiaSharp.SKFont(TypeFaces.Find(tf => tf.FamilyName == SubtitleEditor.FontFamily), SubtitleEditor.FontSize);
 			config.SubtitleLocation = new SkiaSharp.SKPoint(config.SubtitleLocation.X, SubtitleEditor.YPosition / config.AspectRatio);
+			config.ShadowSize = SubtitleEditor.ShadowSize;
+			config.ShadowDistance = SubtitleEditor.ShadowDistance;
 			double duration(double h, double m, double s, double f)
 			{
 				return h * 3600 + m * 60 + s + f / 30;
@@ -182,6 +191,8 @@
 			SubtitleEditorFontFamily = config.SubTitlesFont.Typeface.FamilyName;
 			SubtitleEditorFontSize = config.SubTitlesFont.Size;
 			SubtitleEditorYPosition = config.SubtitleLocation.Y * config.AspectRatio;
+			SubtitleEditorShadowSize = config.ShadowSize;
+			SubtitleEditorShadowDistance = config.ShadowDistance;
 			SubtitleEditorStartingHH = SubtitleEditor.StartingHH;
 			SubtitleEditorStartingMM = SubtitleEditor.StartingMM;
 			SubtitleEditorStartingSS = SubtitleEditor.StartingSS;

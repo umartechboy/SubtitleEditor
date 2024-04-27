@@ -29,7 +29,7 @@ namespace SubtitleEditor.SectionDef
         public SubtitleClip(double start, double end, string source) : base(start, end, source)
         {
         }
-        void DrawWrapLines(float x, float y, string longLine, float lineLengthLimit, SKCanvas canvas, SKPaint defPaint)
+        void DrawWrapLines(float x, float y, string longLine, float lineLengthLimit, SKCanvas canvas, SKPaint defPaint, RenderConfig config)
         {
             var wrappedStrings = new List<string>();
             var lineLength = 0f;
@@ -92,6 +92,8 @@ namespace SubtitleEditor.SectionDef
                 // Lets now calculate xOffset for centered placement at x
 
                 var rc = wrappedLine.Key;
+                if (config.ShadowSize > 0)
+                    defPaint.ImageFilter = SKImageFilter.CreateDropShadow(config.ShadowDistance, config.ShadowDistance, config.ShadowSize, config.ShadowSize, config.ShadowColor);
                 canvas.DrawText(wrappedLine.Value, x - rc.Width / 2, yOffset + dy, defPaint);
                 yOffset += defPaint.FontSpacing;
             }
@@ -105,7 +107,7 @@ namespace SubtitleEditor.SectionDef
                 {
                     Color = config.SubtitleColor,
                     IsAntialias = true
-                });
+                }, config);
             }
         }
     }
@@ -113,10 +115,13 @@ namespace SubtitleEditor.SectionDef
     {
         public SKSize TargetSize { get; set; }
         public float AspectRatio { get; set; }
+        public float ShadowSize { get; set; }
+        public float ShadowDistance { get; set; }
         public SKFont SubTitlesFont { get; set; }
         public SKColor SubtitleColor { get; set; }
+		public SKColor ShadowColor { get; set; }
 
-        public double SubtitleOverlap { get; set; }
+		public double SubtitleOverlap { get; set; }
         public SKPoint SubtitleLocation { get; set; }
     }
 }
