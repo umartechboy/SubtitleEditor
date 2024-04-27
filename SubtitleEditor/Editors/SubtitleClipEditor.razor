@@ -57,11 +57,24 @@
             </ButtonTemplate>
         </MudFileUpload>
     </MudItem>
+    <MudItem md="12" Class="py-0">
+        <MudSlider T="float" Value="@FontSize" ValueChanged="@OnFontSizeChanged" Immediate=true Min="1" Max="100">Size</MudSlider>
+    </MudItem>
+    <MudItem md="12" Class="py-0">
+        <MudSlider T="float" Value="@YPosition" ValueChanged="@OnYPositionChanged" Immediate=true Min="0" Max="100">Position</MudSlider>
+    </MudItem>
 </MudGrid>
 @inject ISnackbar Snackbar
 @code {
+
     [Parameter] 
-    public string Text { get; set; }    
+    public string Text { get; set; }
+    [Parameter]
+    public string FontFamily { get; set; }
+    [Parameter]
+    public float FontSize { get; set; }
+    [Parameter]
+    public float YPosition { get; set; }
     [Parameter] 
     public double StartingHH { get; set; }    
     [Parameter] 
@@ -79,13 +92,21 @@
     [Parameter] 
     public double DurationFF { get; set; }
     [Parameter]
-    public string FontFamily { get; set; }
-    [Parameter]
     public EventCallback<SubtitleClipEditor> OnAChange { get; set; }
     [Parameter]
     public List<SkiaSharp.SKTypeface> TypeFaces { get; set; }
     protected async Task OnATextChanged(string d)
     {
+        await OnAChange.InvokeAsync(this);
+    }
+    private async Task OnFontSizeChanged(float value) // Ensure correct casing (OnValueChanged)
+    {
+        FontSize = value;
+        await OnAChange.InvokeAsync(this);
+    }
+    private async Task OnYPositionChanged(float value) // Ensure correct casing (OnValueChanged)
+    {
+        YPosition = value;
         await OnAChange.InvokeAsync(this);
     }
     protected async Task UploadTypeFace(IBrowserFile file)
@@ -99,7 +120,7 @@
         var tf = SkiaSharp.SKTypeface.FromStream(ms);
         if (TypeFaces.Any(t => t.FamilyName == tf.FamilyName))
         {
-            Snackbar.Add($"\"{tf.FamilyName}\" alread added", Severity.Success);
+            Snackbar.Add($"\"{tf.FamilyName}\" alread added", Severity.Warning);
             return;
         }
 

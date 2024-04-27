@@ -112,7 +112,7 @@ namespace SubtitleEditor.SectionDef
     public class RenderConfig
     {
         public SKSize TargetSize { get; set; }
-        public double AspectRatio { get; set; }
+        public float AspectRatio { get; set; }
         public SKFont SubTitlesFont { get; set; }
         public SKColor SubtitleColor { get; set; }
 

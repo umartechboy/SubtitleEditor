@@ -19,8 +19,11 @@
 			{
 				<SubtitleEditor.Editors.SubtitleClipEditor 
 				OnAChange="SubtitleEditorOnAChange"
-				Text ="@SubtitleEditorText" 
+				Text ="@SubtitleEditorText"
 				FontFamily="@SubtitleEditorFontFamily"
+				TypeFaces="@TypeFaces"
+				FontSize="@SubtitleEditorFontSize"
+				YPosition="@SubtitleEditorYPosition"
 				StartingHH="@SubtitleEditorStartingHH" 
 				StartingMM="@SubtitleEditorStartingMM" 
 				StartingSS="@SubtitleEditorStartingSS" 
@@ -28,8 +31,7 @@
 				DurationHH="@SubtitleEditorDurationHH" 
 				DurationMM="@SubtitleEditorDurationMM" 
 				DurationSS="@SubtitleEditorDurationSS" 
-				DurationFF="@SubtitleEditorDurationFF" 
-				TypeFaces="@TypeFaces"
+				DurationFF="@SubtitleEditorDurationFF"
 				></SubtitleEditor.Editors.SubtitleClipEditor>
 			}
 		</MudPaper>
@@ -64,6 +66,7 @@
 			{
 				SubTitlesFont = new SkiaSharp.SKFont(SkiaSharp.SKTypeface.FromFamilyName("Roboto")) { Size = 10 },
 				SubtitleColor = SkiaSharp.SKColors.Black,
+				AspectRatio = 16/9.0F
 			};
 	}
 	protected override async Task OnInitializedAsync()
@@ -91,13 +94,12 @@
 	{
 		var canvas = e.Surface.Canvas;
 		canvas.Clear();
-		float aspect = 16 / 9.0F;
 		var width = (float)e.Info.Width;
-		var height = (float)(e.Info.Width / aspect);
+		var height = (float)(e.Info.Width / config.AspectRatio);
 		if (height > e.Info.Height)
 		{
 			height = e.Info.Height;
-			width = (float)(height * aspect);
+			width = (float)(height * config.AspectRatio);
 		}
 
 		canvas.Translate((e.Info.Width - width) / 2, (e.Info.Height - height) / 2);
@@ -111,8 +113,8 @@
 		e.Surface.Canvas.Scale(scale, scale);
 
 		config.TargetSize = new SkiaSharp.SKSize() { Width = width, Height = height };
-		config.AspectRatio = aspect;
-		config.SubtitleLocation = new SkiaSharp.SKPoint(50, 50 / aspect);
+		
+		config.SubtitleLocation = new SkiaSharp.SKPoint(50, 50 / config.AspectRatio);
 
 		sectionBarControl.RenderCurrentFrame(
 			e.Surface.Canvas, config);
@@ -123,6 +125,8 @@
 
 	string SubtitleEditorText { get; set; }
 	string SubtitleEditorFontFamily { get; set; }
+	float SubtitleEditorFontSize { get; set; }
+	float SubtitleEditorYPosition { get; set; }
 	double SubtitleEditorStartingHH {get;set;}
 	double SubtitleEditorStartingMM {get;set;}
 	double SubtitleEditorStartingSS {get;set;}
@@ -137,6 +141,8 @@
 			return;
 		SubtitleEditorText = ClipUnderEditing.Source;
 		SubtitleEditorFontFamily = config.SubTitlesFont.Typeface.FamilyName;
+		SubtitleEditorFontSize = config.SubTitlesFont.Size;
+		SubtitleEditorYPosition = (float)(config.SubtitleLocation.Y * config.AspectRatio);
 		SubtitleEditorStartingHH = (int)(ClipUnderEditing.Start / 3600);
 		SubtitleEditorStartingMM = (int)(ClipUnderEditing.Start / 60);
 		SubtitleEditorStartingSS = (int)(ClipUnderEditing.Start);
@@ -146,6 +152,7 @@
 		SubtitleEditorDurationMM = (int)(duration / 60);
 		SubtitleEditorDurationSS = (int)(duration);
 		SubtitleEditorDurationFF = (duration - (int)(duration)) * 30;
+
 	}
 	public void SubtitleEditorOnAChange(SubtitleEditor.Editors.SubtitleClipEditor SubtitleEditor)
 	{
@@ -155,7 +162,8 @@
 		if (ClipUnderEditing is SubtitleClip)
 		{
 			ClipUnderEditing.Source = SubtitleEditor.Text;
-			config.SubTitlesFont = new SkiaSharp.SKFont(TypeFaces.Find(tf => tf.FamilyName == SubtitleEditor.FontFamily));
+			config.SubTitlesFont = new SkiaSharp.SKFont(TypeFaces.Find(tf => tf.FamilyName == SubtitleEditor.FontFamily), SubtitleEditor.FontSize);
+			config.SubtitleLocation = new SkiaSharp.SKPoint(config.SubtitleLocation.X, SubtitleEditor.YPosition / config.AspectRatio);
 			double duration(double h, double m, double s, double f)
 			{
 				return h * 3600 + m * 60 + s + f / 30;
@@ -172,6 +180,8 @@
 				SubtitleEditor.DurationFF);
 			SubtitleEditorText = SubtitleEditor.Text;
 			SubtitleEditorFontFamily = config.SubTitlesFont.Typeface.FamilyName;
+			SubtitleEditorFontSize = config.SubTitlesFont.Size;
+			SubtitleEditorYPosition = config.SubtitleLocation.Y * config.AspectRatio;
 			SubtitleEditorStartingHH = SubtitleEditor.StartingHH;
 			SubtitleEditorStartingMM = SubtitleEditor.StartingMM;
 			SubtitleEditorStartingSS = SubtitleEditor.StartingSS;
