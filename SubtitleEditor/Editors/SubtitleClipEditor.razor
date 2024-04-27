@@ -1,12 +1,66 @@
-﻿
-<MudTextField T="string" Label="Caption text" Variant="Variant.Text" @bind-Value="Text" TextChanged="@OnTextChanged" Immediate="true" AutoGrow Lines="3" HelperText="The text rendered on the screen" />
-
+﻿@using SubtitleEditor.SectionDef
+<MudGrid>
+    <MudItem md="12">
+        <MudTextField T="string" Label="Caption text" Variant="Variant.Text" @bind-Value="Text" TextChanged="@OnATextChanged" Immediate="true" AutoGrow Lines="3" HelperText="Long lines automatically break to fit width" />
+     </MudItem>
+     <MudDivider DividerType="DividerType.FullWidth" />
+    <MudItem md="3" Class="py-0">
+         <MudNumericField @bind-Value="StartingHH" TextChanged="@OnATextChanged" Label="hours" Immediate="true"  Variant="Variant.Filled" Min="0.0" Max="1000" />
+     </MudItem>
+     <MudItem md="3" Class="py-0">
+         <MudNumericField @bind-Value="StartingMM" TextChanged="@OnATextChanged" Label="minutes" Immediate="true"  Variant="Variant.Filled" Min="0.0" Max="59" />
+     </MudItem>
+     <MudItem md="3" Class="py-0">
+         <MudNumericField @bind-Value="StartingSS" TextChanged="@OnATextChanged" Label="seconds" Immediate="true"  Variant="Variant.Filled" Min="0.0" Max="59" />
+     </MudItem>
+     <MudItem md="3" Class="py-0">
+         <MudNumericField @bind-Value="StartingFF" TextChanged="@OnATextChanged" Label="frame" Immediate="true"  Variant="Variant.Filled" Min="0.0" Max="29" />
+     </MudItem>
+     <MudItem md="12" Class="py-0">
+         <MudText GutterBottom="true">Start Time</MudText>
+     </MudItem>
+     <MudDivider DividerType="DividerType.FullWidth" />
+     <MudItem md="3" Class="py-0">
+         <MudNumericField Value="@DurationHH" TextChanged="@OnATextChanged" Label="hours" Immediate="true"  Variant="Variant.Filled" Min="0.0" Max="1000" />
+     </MudItem>
+     <MudItem md="3" Class="py-0">
+         <MudNumericField @bind-Value="@DurationMM" TextChanged="@OnATextChanged" Label="minutes" Immediate="true"  Variant="Variant.Filled" Min="0.0" Max="59" />
+     </MudItem>
+     <MudItem md="3" Class="py-0">
+         <MudNumericField @bind-Value="DurationSS" TextChanged="@OnATextChanged" Label="seconds" Immediate="true"  Variant="Variant.Filled" Min="0.0" Max="59" />
+     </MudItem>
+     <MudItem md="3" Class="py-0">
+         <MudNumericField @bind-Value="DurationFF" TextChanged="@OnATextChanged" Label="frame" Immediate="true"  Variant="Variant.Filled" Min="0.0" Max="29" />
+     </MudItem>
+     <MudItem md="12" Class="py-0">
+         <MudText GutterBottom="true">Duration</MudText>
+     </MudItem>
+     <MudDivider DividerType="DividerType.FullWidth" />
+</MudGrid>
  @code {
+    [Parameter] 
+    public string Text { get; set; }    
+    [Parameter] 
+    public double StartingHH { get; set; }    
+    [Parameter] 
+    public double StartingMM { get; set; }    
+    [Parameter] 
+    public double StartingSS { get; set; }    
+    [Parameter] 
+    public double StartingFF { get; set; }    
+    [Parameter] 
+    public double DurationHH { get; set; }    
+    [Parameter] 
+    public double DurationMM { get; set; }    
+    [Parameter] 
+    public double DurationSS { get; set; }    
+    [Parameter] 
+    public double DurationFF { get; set; }
     [Parameter]
-    public string Text { get; set; }
-    [Parameter]
-    public EventCallback<string> OnTextChanged { get; set; }
-
-    private MudTextField<string> multilineReference;
+    public EventCallback<SubtitleClipEditor> OnAChange { get; set; }
+    protected async Task OnATextChanged(string d)
+    {
+        await OnAChange.InvokeAsync(this);
+    }
 
 }
