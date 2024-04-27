@@ -43,7 +43,7 @@
 			SeekPosition = e.Value;
 			await SeekUpdate.InvokeAsync(e.Value); 
 		};
-		sectionBar.OnClipSelected += async (s, e) => await EditClip.InvokeAsync(e.Clip);
+		sectionBar.OnClipEditRequest += async (s, e) => await EditClip.InvokeAsync(e.Clip);
 		sectionBar.Layers[0].Add(new SubtitleClip(10, 20, "Hello, world"));
 		sectionBar.Layers[1].Add(new SubtitleClip(20, 30, "ABCD"));
 		sectionBar.Layers[2].Add(new SubtitleClip(30, 40, "[This is sub]"));
@@ -58,6 +58,7 @@
 		sectionBar.ZoomStart = 0D;
 
 		sectionBar.OnDebug += (s, e) => Console.WriteLine(e.Message);
+
 	}
 	protected void OnPaint(SKPaintGLSurfaceEventArgs e)
 	{

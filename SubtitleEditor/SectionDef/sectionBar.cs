@@ -92,7 +92,7 @@ namespace SubtitleEditor.SectionDef
         public delegate void SeekBarHandler(object sender, SeekBarEventArgs e);
         public event TimeSliceChangeHandler TimeSliceChanged;
         public event TrimBarClickHandler OnClick;
-        public event ClipSelectionHandler OnClipSelected;
+        public event ClipSelectionHandler OnClipEditRequest;
         public event SectionModifyHandler SectionModifyRequest;
         public event OnDebugHandler OnDebug;
         public event SectionsRemovedHandler SectionsRemoved;
@@ -310,7 +310,8 @@ namespace SubtitleEditor.SectionDef
             var cursorLayerInd = (int)((e.Y - zsw * 2) / layerHeight);
             if (tp == SectionBarPart.Sections)
             {
-                for (int layerIndex = 0; layerIndex < Layers.Count; layerIndex++)
+				bool atLeastOneSelected = false;
+				for (int layerIndex = 0; layerIndex < Layers.Count; layerIndex++)
                 {
                     int[] _ar = new int[GetSelectedSectionIndices(layerIndex).Count];
                     GetSelectedSectionIndices(layerIndex).CopyTo(_ar, 0);
@@ -337,25 +338,38 @@ namespace SubtitleEditor.SectionDef
                     }
                     // just update selection before calling the OnClick event.
                     // set zoom selection to current hover section only. don't remove selection if multiple are selected already
+                    
                     for (int i = 0; i < Layers[layerIndex].Count; i++)
                     {
                         if (GetSelectedSectionIndices(layerIndex).Count < 1)
                         {
                             Layers[layerIndex][i].selected = i == hovSec && layerIndex == cursorLayerInd;
                             if (Layers[layerIndex][i].selected)
-                                OnClipSelected?.Invoke(this, new ClipArgs() { Clip = Layers[layerIndex][i] });
+                            {
+                                OnClipEditRequest?.Invoke(this, new ClipArgs() { Clip = Layers[layerIndex][i] });
+                                atLeastOneSelected = true;
+
+							}
                         }
                         else
                         {
                             Layers[layerIndex][i].selected = (Layers[layerIndex][i].selected || i == hovSec) && layerIndex == cursorLayerInd;
                             if (Layers[layerIndex][i].selected)
-                                OnClipSelected?.Invoke(this, new ClipArgs() { Clip = Layers[layerIndex][i] });
+                            {
+                                OnClipEditRequest?.Invoke(this, new ClipArgs() { Clip = Layers[layerIndex][i] });
+                                atLeastOneSelected = true;
+
+							}
                         }
                     }
                     if (OnClick != null)
                         OnClick(this, new trimBarClickEventArgs(hovSec, e.Clicks, e.Delta, e.Location, e.Button, tp));
-                }
-                return;
+				}
+				if (!atLeastOneSelected)
+				{
+					OnClipEditRequest?.Invoke(this, new ClipArgs() { Clip = null });
+				}
+				return;
             }
             if (tp == SectionBarPart.SeekBar && seekBar.hoverOver != 0)
             {
@@ -412,7 +426,12 @@ namespace SubtitleEditor.SectionDef
             seekBar.MouseUp();
             for (int layerIndex = 0; layerIndex < Layers.Count; layerIndex++)
                 for (int i = 0; i < Layers[layerIndex].Count; i++)
+                {
+
+                    if ((Layers[layerIndex][i].hoverOver == -1 || Layers[layerIndex][i].hoverOver == 1) && Layers[layerIndex][i].selected)
+                        OnClipEditRequest(this, new ClipArgs() { Clip = Layers[layerIndex][i] });
                     Layers[layerIndex][i].MouseUp();
+                }
             Invalidate();
         }
 
