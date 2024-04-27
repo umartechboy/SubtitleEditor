@@ -1,5 +1,6 @@
 ﻿@page "/"
 @using MudBlazor
+@using MudBlazor.Utilities
 @using SkiaSharp.Views.Blazor
 @using SubtitleEditor.SectionDef
 <PageTitle>Home</PageTitle>
@@ -26,6 +27,7 @@
 				YPosition="@SubtitleEditorYPosition"
 				ShadowSize="@SubtitleEditorShadowSize"
 				ShadowDistance="@SubtitleEditorShadowDistance"
+				TextColor="@SubtitleEditorTextColor"
 				StartingHH="@SubtitleEditorStartingHH" 
 				StartingMM="@SubtitleEditorStartingMM" 
 				StartingSS="@SubtitleEditorStartingSS" 
@@ -54,16 +56,15 @@
 @* <TimelineContainer></TimelineContainer> *@
 @inject HttpClient HTTP
 @code{
-	SectionBarWebControl sectionBarControl { get; set; }
-	Clip ClipUnderEditing;
-	public SKGLView renderPreview { get; set; }
-	public string CurrentTime {get;set;} = "";
-	static RenderConfig config;
-
-	public List<SkiaSharp.SKTypeface> TypeFaces { get; set; }
-	protected override void OnInitialized()
-	{
-		config = new RenderConfig()
+    SectionBarWebControl sectionBarControl { get; set; }
+    Clip ClipUnderEditing;
+    public SKGLView renderPreview { get; set; }
+    public string CurrentTime {get;set;} = "";
+    static RenderConfig config;
+    public List<SkiaSharp.SKTypeface> TypeFaces { get; set; }
+    protected override void OnInitialized()
+    {
+        config = new RenderConfig()
 			{
 				SubTitlesFont = new SkiaSharp.SKFont(SkiaSharp.SKTypeface.FromFamilyName("Roboto")) { Size = 10 },
 				SubtitleColor = SkiaSharp.SKColors.Black,
@@ -73,107 +74,120 @@
 				ShadowDistance = 10,
 				SubtitleLocation = new SkiaSharp.SKPoint(50, 50 * 9 / 16.0F)
 			};
-	}
-	protected override async Task OnInitializedAsync()
-	{
-		TypeFaces = new List<SkiaSharp.SKTypeface>();
-		var availableFont = new string[] {
+    }
+    protected override async Task OnInitializedAsync()
+    {
+        TypeFaces = new List<SkiaSharp.SKTypeface>();
+        var availableFont = new string[] {
 		"fonts/Jersey15-Regular.ttf",
 		"fonts/Anton-Regular.ttf"
 	};
-		foreach (var font in availableFont)
-		{
-			var bytes = await HTTP.GetByteArrayAsync(font);
-			var ms = new MemoryStream(bytes);
-			TypeFaces.Add(SkiaSharp.SKFontManager.Default.CreateTypeface(ms));
-		}
-		config.SubTitlesFont = new SkiaSharp.SKFont(TypeFaces.First());
-		SubtitleEditorFontFamily = config.SubTitlesFont.Typeface.FamilyName;
-	}
-	public void SeekUpdate(double t){
-		CurrentTime = common.timeToString(t);
-		renderPreview.Invalidate();
-	}
+        foreach (var font in availableFont)
+        {
+            var bytes = await HTTP.GetByteArrayAsync(font);
+            var ms = new MemoryStream(bytes);
+            TypeFaces.Add(SkiaSharp.SKFontManager.Default.CreateTypeface(ms));
+        }
+        config.SubTitlesFont = new SkiaSharp.SKFont(TypeFaces.First());
+        SubtitleEditorFontFamily = config.SubTitlesFont.Typeface.FamilyName;
+    }
+    public void SeekUpdate(double t){
+        CurrentTime = common.timeToString(t);
+        renderPreview.Invalidate();
+    }
 
-	protected void OnRenderPaint(SKPaintGLSurfaceEventArgs e)
-	{
-		var canvas = e.Surface.Canvas;
-		canvas.Clear();
-		var width = (float)e.Info.Width;
-		var height = (float)(e.Info.Width / config.AspectRatio);
-		if (height > e.Info.Height)
-		{
-			height = e.Info.Height;
-			width = (float)(height * config.AspectRatio);
-		}
+    protected void OnRenderPaint(SKPaintGLSurfaceEventArgs e)
+    {
+        var canvas = e.Surface.Canvas;
+        canvas.Clear();
+        var width = (float)e.Info.Width;
+        var height = (float)(e.Info.Width / config.AspectRatio);
+        if (height > e.Info.Height)
+        {
+            height = e.Info.Height;
+            width = (float)(height * config.AspectRatio);
+        }
 
-		canvas.Translate((e.Info.Width - width) / 2, (e.Info.Height - height) / 2);
-		e.Surface.Canvas.DrawRect(0, 0, width, height, new SkiaSharp.SKPaint()
+        canvas.Translate((e.Info.Width - width) / 2, (e.Info.Height - height) / 2);
+        e.Surface.Canvas.DrawRect(0, 0, width, height, new SkiaSharp.SKPaint()
 			{
 				IsStroke = true,
 				StrokeWidth = 2,
 				Color = SkiaSharp.SKColors.Gray
 			});
-		float scale = width / 100;
-		e.Surface.Canvas.Scale(scale, scale);
+        float scale = width / 100;
+        e.Surface.Canvas.Scale(scale, scale);
 
-		config.TargetSize = new SkiaSharp.SKSize() { Width = width, Height = height };
+        config.TargetSize = new SkiaSharp.SKSize() { Width = width, Height = height };
 
-		sectionBarControl.RenderCurrentFrame(
-			e.Surface.Canvas, config);
-		e.Surface.Canvas.Scale(1 / scale, 1 / scale);
-		canvas.Translate(-(e.Info.Width - width) / 2, -(e.Info.Height - height) / 2);
-	}
+        sectionBarControl.RenderCurrentFrame(
+            e.Surface.Canvas, config);
+        e.Surface.Canvas.Scale(1 / scale, 1 / scale);
+        canvas.Translate(-(e.Info.Width - width) / 2, -(e.Info.Height - height) / 2);
+    }
 
 
-	string SubtitleEditorText { get; set; }
-	string SubtitleEditorFontFamily { get; set; }
-	float SubtitleEditorFontSize { get; set; }
-	float SubtitleEditorYPosition { get; set; }
-	float SubtitleEditorShadowSize { get; set; }
-	float SubtitleEditorShadowDistance { get; set; }
-	double SubtitleEditorStartingHH {get;set;}
-	double SubtitleEditorStartingMM {get;set;}
-	double SubtitleEditorStartingSS {get;set;}
-	double SubtitleEditorStartingFF {get;set;}
-	double SubtitleEditorDurationHH {get;set;}
-	double SubtitleEditorDurationMM {get;set;}
-	double SubtitleEditorDurationSS {get;set;}
-	double SubtitleEditorDurationFF { get; set; }
-	public void EditClipRequest(Clip clip){
-		ClipUnderEditing = clip;
-		if (clip == null)
-			return;
-		SubtitleEditorText = ClipUnderEditing.Source;
-		SubtitleEditorFontFamily = config.SubTitlesFont.Typeface.FamilyName;
-		SubtitleEditorFontSize = config.SubTitlesFont.Size;
-		SubtitleEditorYPosition = (float)(config.SubtitleLocation.Y * config.AspectRatio);
-		SubtitleEditorShadowSize = config.ShadowSize;
-		SubtitleEditorShadowDistance =config.ShadowDistance;
-		SubtitleEditorStartingHH = (int)(ClipUnderEditing.Start / 3600);
-		SubtitleEditorStartingMM = (int)(ClipUnderEditing.Start / 60);
-		SubtitleEditorStartingSS = (int)(ClipUnderEditing.Start);
-		SubtitleEditorStartingFF = (ClipUnderEditing.Start - (int)(ClipUnderEditing.Start)) * 30;
-		var duration = ClipUnderEditing.End - ClipUnderEditing.Start;
-		SubtitleEditorDurationHH = (int)(duration / 3600);
-		SubtitleEditorDurationMM = (int)(duration / 60);
-		SubtitleEditorDurationSS = (int)(duration);
-		SubtitleEditorDurationFF = (duration - (int)(duration)) * 30;
+    string SubtitleEditorText { get; set; }
+    string SubtitleEditorFontFamily { get; set; }
+    float SubtitleEditorFontSize { get; set; }
+    float SubtitleEditorYPosition { get; set; }
+    float SubtitleEditorShadowSize { get; set; }
+    float SubtitleEditorShadowDistance { get; set; }
+    MudColor SubtitleEditorTextColor { get; set; }
+    double SubtitleEditorStartingHH {get;set;}
+    double SubtitleEditorStartingMM {get;set;}
+    double SubtitleEditorStartingSS {get;set;}
+    double SubtitleEditorStartingFF {get;set;}
+    double SubtitleEditorDurationHH {get;set;}
+    double SubtitleEditorDurationMM {get;set;}
+    double SubtitleEditorDurationSS {get;set;}
+    double SubtitleEditorDurationFF { get; set; }
 
-	}
-	public void SubtitleEditorOnAChange(SubtitleEditor.Editors.SubtitleClipEditor SubtitleEditor)
-	{
+    SkiaSharp.SKColor MudColorToSK(MudColor mud)
+    {
+        return new SkiaSharp.SKColor(mud.R, mud.G, mud.B, mud.A);
+    }
+    MudColor SKColorToMud(SkiaSharp.SKColor sk)
+    {
+        return new MudColor(sk.Red, sk.Green, sk.Blue, sk.Alpha);
+    }
+    public void EditClipRequest(Clip clip){
+        ClipUnderEditing = clip;
+        if (clip == null)
+            return;
+        SubtitleEditorText = ClipUnderEditing.Source;
+        SubtitleEditorFontFamily = config.SubTitlesFont.Typeface.FamilyName;
+        SubtitleEditorFontSize = config.SubTitlesFont.Size;
+        SubtitleEditorYPosition = (float)(config.SubtitleLocation.Y * config.AspectRatio);
+        SubtitleEditorShadowSize = config.ShadowSize;
+        SubtitleEditorShadowDistance =config.ShadowDistance;
+        SubtitleEditorTextColor = SKColorToMud(config.SubtitleColor);
+        SubtitleEditorStartingHH = (int)(ClipUnderEditing.Start / 3600);
+        SubtitleEditorStartingMM = (int)(ClipUnderEditing.Start / 60);
+        SubtitleEditorStartingSS = (int)(ClipUnderEditing.Start);
+        SubtitleEditorStartingFF = (ClipUnderEditing.Start - (int)(ClipUnderEditing.Start)) * 30;
+        var duration = ClipUnderEditing.End - ClipUnderEditing.Start;
+        SubtitleEditorDurationHH = (int)(duration / 3600);
+        SubtitleEditorDurationMM = (int)(duration / 60);
+        SubtitleEditorDurationSS = (int)(duration);
+        SubtitleEditorDurationFF = (duration - (int)(duration)) * 30;
 
-		if (ClipUnderEditing == null)
-			return;
-		if (ClipUnderEditing is SubtitleClip)
-		{
-			ClipUnderEditing.Source = SubtitleEditor.Text;
-			config.SubTitlesFont = new SkiaSharp.SKFont(TypeFaces.Find(tf => tf.FamilyName == SubtitleEditor.FontFamily), SubtitleEditor.FontSize);
-			config.SubtitleLocation = new SkiaSharp.SKPoint(config.SubtitleLocation.X, SubtitleEditor.YPosition / config.AspectRatio);
-			config.ShadowSize = SubtitleEditor.ShadowSize;
-			config.ShadowDistance = SubtitleEditor.ShadowDistance;
-			double duration(double h, double m, double s, double f)
+    }
+    public void SubtitleEditorOnAChange(SubtitleEditor.Editors.SubtitleClipEditor SubtitleEditor)
+    {
+
+        if (ClipUnderEditing == null)
+            return;
+        if (ClipUnderEditing is SubtitleClip)
+        {
+
+            ClipUnderEditing.Source = SubtitleEditor.Text;
+            config.SubTitlesFont = new SkiaSharp.SKFont(TypeFaces.Find(tf => tf.FamilyName == SubtitleEditor.FontFamily), SubtitleEditor.FontSize);
+            config.SubtitleLocation = new SkiaSharp.SKPoint(config.SubtitleLocation.X, SubtitleEditor.YPosition / config.AspectRatio);
+            config.ShadowSize = SubtitleEditor.ShadowSize;
+            config.ShadowDistance = SubtitleEditor.ShadowDistance;
+            config.SubtitleColor = MudColorToSK(SubtitleEditor.TextColor);
+            double duration(double h, double m, double s, double f)
 			{
 				return h * 3600 + m * 60 + s + f / 30;
 			}
@@ -193,6 +207,7 @@
 			SubtitleEditorYPosition = config.SubtitleLocation.Y * config.AspectRatio;
 			SubtitleEditorShadowSize = config.ShadowSize;
 			SubtitleEditorShadowDistance = config.ShadowDistance;
+			SubtitleEditorTextColor = SKColorToMud(config.SubtitleColor);
 			SubtitleEditorStartingHH = SubtitleEditor.StartingHH;
 			SubtitleEditorStartingMM = SubtitleEditor.StartingMM;
 			SubtitleEditorStartingSS = SubtitleEditor.StartingSS;

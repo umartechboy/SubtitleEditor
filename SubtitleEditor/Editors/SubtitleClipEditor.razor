@@ -1,4 +1,5 @@
-﻿@using SubtitleEditor.SectionDef
+﻿@using MudBlazor.Utilities
+@using SubtitleEditor.SectionDef
 <MudGrid>
     <MudItem md="12">
         <MudTextField T="string" Label="Caption text" Variant="Variant.Text" @bind-Value="Text" TextChanged="@OnATextChanged" Immediate="true" AutoGrow Lines="3" HelperText="Long lines automatically break to fit width" />
@@ -68,7 +69,10 @@
     </MudItem>
     <MudItem md="12" Class="py-0">
         <MudSlider T="float" Value="@ShadowDistance" ValueChanged="@OnShadowDistanceChanged" Immediate=true Min="0" Max="20">Shadow Distance</MudSlider>
-    </MudItem>
+	</MudItem>
+	<MudItem md="12" Class="py-0">
+        <MudColorPicker Label="Color" ValueChanged="OnColorChanged" Value="TextColor" ColorPickerView="ColorPickerView.Spectrum" />
+	</MudItem>
 </MudGrid>
 @inject ISnackbar Snackbar
 @code {
@@ -83,6 +87,10 @@
     public float ShadowSize { get; set; }
     [Parameter]
     public float ShadowDistance { get; set; }
+    [Parameter]
+    public MudColor TextColor { get; set; }
+    [Parameter]
+    public MudColor ShadowColor { get; set; }
     [Parameter]
     public float YPosition { get; set; }
     [Parameter] 
@@ -129,6 +137,11 @@
     private async Task OnShadowDistanceChanged(float value) // Ensure correct casing (OnValueChanged)
     {
         ShadowDistance = value;
+        await OnAChange.InvokeAsync(this);
+    }
+    private async Task OnColorChanged(MudColor c)
+    {
+        TextColor = c;
         await OnAChange.InvokeAsync(this);
     }
     protected async Task UploadTypeFace(IBrowserFile file)
