@@ -1,0 +1,274 @@
+﻿@using FFmpegBlazor
+@using MudBlazor.Utilities
+@using SubtitleEditor.SectionDef
+@inject IJSRuntime Runtime
+@inject ISnackbar Snackbar
+<MudGrid>
+    <MudItem md="3" Class="py-0">
+         <MudNumericField @bind-Value="StartingHH" TextChanged="@OnATextChanged" Label="hours" Immediate="true"  Variant="Variant.Filled" Min="0.0" Max="1000" />
+     </MudItem>
+     <MudItem md="3" Class="py-0">
+         <MudNumericField @bind-Value="StartingMM" TextChanged="@OnATextChanged" Label="minutes" Immediate="true"  Variant="Variant.Filled" Min="0.0" Max="59" />
+     </MudItem>
+     <MudItem md="3" Class="py-0">
+         <MudNumericField @bind-Value="StartingSS" TextChanged="@OnATextChanged" Label="seconds" Immediate="true"  Variant="Variant.Filled" Min="0.0" Max="59" />
+     </MudItem>
+     <MudItem md="3" Class="py-0">
+         <MudNumericField @bind-Value="StartingFF" TextChanged="@OnATextChanged" Label="frame" Immediate="true"  Variant="Variant.Filled" Min="0.0" Max="29" />
+     </MudItem>
+     <MudItem md="12" Class="py-0">
+         <MudText GutterBottom="true">Start Time</MudText>
+     </MudItem>
+     <MudDivider DividerType="DividerType.FullWidth" />
+     <MudItem md="3" Class="py-0">
+         <MudNumericField Value="@DurationHH" TextChanged="@OnATextChanged" Label="hours" Immediate="true"  Variant="Variant.Filled" Min="0.0" Max="1000" />
+     </MudItem>
+     <MudItem md="3" Class="py-0">
+         <MudNumericField @bind-Value="@DurationMM" TextChanged="@OnATextChanged" Label="minutes" Immediate="true"  Variant="Variant.Filled" Min="0.0" Max="59" />
+     </MudItem>
+     <MudItem md="3" Class="py-0">
+         <MudNumericField @bind-Value="DurationSS" TextChanged="@OnATextChanged" Label="seconds" Immediate="true"  Variant="Variant.Filled" Min="0.0" Max="59" />
+     </MudItem>
+     <MudItem md="3" Class="py-0">
+         <MudNumericField @bind-Value="DurationFF" TextChanged="@OnATextChanged" Label="frame" Immediate="true"  Variant="Variant.Filled" Min="0.0" Max="29" />
+     </MudItem>
+     <MudItem md="12" Class="py-0">
+         <MudText GutterBottom="true">Duration</MudText>
+     </MudItem>
+     <MudDivider DividerType="DividerType.FullWidth" />
+    <MudItem md="6" Class="py-0">
+        <MudSlider T="float" Value="@XPosition" ValueChanged="@OnXPositionChanged" Immediate=true Min="0" Max="100">Horizontal Position</MudSlider>
+    </MudItem>
+    <MudItem md="6" Class="py-0">
+        <MudSlider T="float" Value="@YPosition" ValueChanged="@OnYPositionChanged" Immediate=true Min="0" Max="100">Vertical Position</MudSlider>
+    </MudItem>
+    <MudItem md="6" Class="py-0">
+        <MudSlider T="float" Value="@Size" ValueChanged="@OnSizeChanged" Immediate=true Min="1" Max="300">Size</MudSlider>
+    </MudItem>
+    
+    @if (!string.IsNullOrEmpty(SelectedVideo))
+    {
+        <MudItem md="12" Class="py-0">
+            <video width="100%" height="200px" autoplay controls src="@SelectedVideo" />
+        </MudItem>
+    }
+    <MudItem md="12" Class="py-0">
+        <MudFileUpload T="IBrowserFile" Accept=".mov, .avi, .mp4" FilesChanged="VideoUploaderFilesSelected">
+            <ButtonTemplate>
+                <MudButton HtmlTag="label"
+                Variant="Variant.Outlined"
+                Color="Color.Primary"
+                Disabled="converting"
+                for="@context.Id">
+                    Upload Video <MudIcon Icon="@Icons.Material.Filled.CloudUpload" Title="Favorite" />
+                </MudButton>
+            </ButtonTemplate>
+        </MudFileUpload>
+    </MudItem>
+    @if (converting)
+    {
+        <MudItem md="12" Class="py-0">
+            <MudProgressLinear Color="Color.Primary" Indeterminate="conversionProgress <= 0 || conversionProgress >= 100" Value="@conversionProgress" Class="my-7" />
+        </MudItem>
+        <MudItem md="12" Class="py-0">
+            @progressDescription
+        </MudItem>
+    }
+</MudGrid>
+@inject ISnackbar Snackbar
+@code {
+    [Parameter]
+    public string SelectedVideo { get; set; }
+    [Parameter]
+    public SkiaSharp.SKBitmap[] SelectedVideoData { get; set; }
+    [Parameter]
+    public float Size { get; set; }
+    [Parameter]
+    public float XPosition { get; set; }
+    [Parameter]
+    public float YPosition { get; set; }
+    [Parameter] 
+    public double StartingHH { get; set; }    
+    [Parameter] 
+    public double StartingMM { get; set; }    
+    [Parameter] 
+    public double StartingSS { get; set; }    
+    [Parameter] 
+    public double StartingFF { get; set; }    
+    [Parameter] 
+    public double DurationHH { get; set; }    
+    [Parameter] 
+    public double DurationMM { get; set; }    
+    [Parameter] 
+    public double DurationSS { get; set; }    
+    [Parameter] 
+    public double DurationFF { get; set; }
+    [Parameter]
+    public EventCallback<VideoClipEditor> OnAChange { get; set; }
+    System.Text.StringBuilder FFLog = new System.Text.StringBuilder();
+    protected async Task OnATextChanged(string d)
+    {
+        await OnAChange.InvokeAsync(this);
+    }
+    private async Task OnXPositionChanged(float value) // Ensure correct casing (OnValueChanged)
+    {
+        XPosition = value;
+        await OnAChange.InvokeAsync(this);
+    }
+
+    private async Task OnYPositionChanged(float value) // Ensure correct casing (OnValueChanged)
+    {
+        YPosition = value;
+        await OnAChange.InvokeAsync(this);
+    }
+    private async Task OnSizeChanged(float value) // Ensure correct casing (OnValueChanged)
+    {
+        Size = value;
+        await OnAChange.InvokeAsync(this);
+    }
+
+    // Video Processing
+    public static FFmpegBlazor.FFMPEG FFMpeg;
+    bool converting { get; set; } = false;
+    float conversionProgress { get; set; } = 0;
+    public int parsedVideoFrames = 0;
+    public double parsedVideoDuration = 0;
+    string progressDescription = "";
+    protected override async Task OnInitializedAsync()
+    {
+
+        if (FFmpegFactory.Runtime == null)
+        {
+            FFmpegFactory.Logger += l =>
+            {
+                FFLog.AppendLine(l.Message);
+                if (l.Message.StartsWith("Duration:"))
+                {
+                    var d = l.Message.Substring(10).Split(',')[0];
+                    var parts = d.Split(':', '.').Select(p => int.Parse(p)).ToArray();
+                    var h = parts[0];
+                    var m = parts[1];
+                    var s = parts[2];
+                    var f = parts[3];
+                    parsedVideoDuration = h * 3600 + m * 60 + s;
+                }
+                if (l.Message.Trim().StartsWith("frame="))
+                {
+                    parsedVideoFrames = int.Parse(l.Message.Split("fps")[0].Trim().Substring(6).Trim());
+                    progressDescription = "Extracted " + parsedVideoFrames + " frames";
+                }
+
+                Console.WriteLine("ffmpeg: " + l.Message);
+            };
+            FFmpegFactory.Progress += ProgressChange;
+        }
+
+        //initialize Library
+        await FFmpegFactory.Init(Runtime);
+    }
+    void ProgressChange(Progress m)
+    {
+        conversionProgress = (int)(m.Ratio * 100.0f);
+        if (conversionProgress < 0)
+            conversionProgress = 0;
+        else if (conversionProgress > 100)
+            conversionProgress = 100;
+        // Console.WriteLine($"Progress {m.Ratio}");
+
+        if (m.Ratio >= 1)
+        {
+            StateHasChanged();
+        }
+        StateHasChanged();
+
+    }
+    string randomString()
+    {
+        string str = "";
+        var r = new Random();
+        for (int i = 0; i < 8; i++)
+            str += r.Next().ToString("x").PadLeft(2, '0').Substring(0, 2);
+        return str;
+    }
+    async Task LoadFileInFFMpeg(IBrowserFile file, string videoFileName)
+    {
+        progressDescription = "Reading file...";
+        StateHasChanged();
+        using var stream = file.OpenReadStream(1000000000); //Max size for file that can be read
+        var inputFileDataBuffer = new byte[file.Size];
+        //read all bytes
+        await stream.ReadAsync(inputFileDataBuffer);
+        if (FFMpeg == null)
+        {
+            //create an instance
+            FFMpeg = FFmpegFactory.CreateFFmpeg();
+            //download all dependencies from cdn
+            await FFMpeg.Load(); //parameter false means not to trigger events in ffmpeg Clase instance
+        }
+        FFMpeg.WriteFile(videoFileName, inputFileDataBuffer);
+        GC.Collect();
+        SelectedVideo = FFmpegFactory.CreateURLFromBuffer(inputFileDataBuffer, videoFileName, file.ContentType);
+    }
+    async Task ConvertFFMpegToPngs(string videoFileSeed, string videoFileName)
+    {
+        //Pass CLI argument here equivalent to ffmpeg -i myFile.mp4 output.mp3
+        await FFMpeg.Run("-i", videoFileName, "-vf", "fps=30", videoFileSeed + "_frames_%04d.png");
+
+        //delete in-memory file
+        FFMpeg.UnlinkFile(videoFileName);
+        GC.Collect();
+    }
+    protected async Task<List<SkiaSharp.SKBitmap>> ConvertPNGsToSKBitmaps(string videoFileSeed)
+    {
+        var frames = new List<SkiaSharp.SKBitmap>();
+        for (int i = 1; i <= parsedVideoFrames; i++)
+        {
+            progressDescription = "Converting frame " + i + " of " + parsedVideoFrames;
+            conversionProgress = (int)((i / (float)parsedVideoFrames) * 100);
+            StateHasChanged();
+            try
+            {
+                var png = videoFileSeed + "_frames_" + i.ToString().PadLeft(4, '0') + ".png";
+                var frame = await FFMpeg.ReadFile(png);
+                FFMpeg.UnlinkFile(png);
+                GC.Collect();
+                var bmp = SkiaSharp.SKBitmap.Decode(frame);
+                frames.Add(bmp);
+            }
+            catch (Exception ex)
+            {
+                break;
+            }
+        }
+        return frames;
+    }
+    protected async Task VideoUploaderFilesSelected(IBrowserFile file)
+    {
+        converting = true;
+        FFLog.Clear();
+
+        //create a video link from buffer to that video can be played
+        var videoFileSeed = randomString();
+        var videoFileName = videoFileSeed + file.Name.Substring(file.Name.LastIndexOf('.'));
+        // G
+        await LoadFileInFFMpeg(file, videoFileName); // +100MB
+        await ConvertFFMpegToPngs(videoFileSeed, videoFileName); // +100
+        var frames = await ConvertPNGsToSKBitmaps(videoFileSeed); // +1800
+
+        progressDescription = "Preparing preview";
+        //reRender DOM
+        // Enable preview
+        if (frames.Count <= 0)
+        {
+            Snackbar.Add("Failed to parse video. FFMpeg log: " + FFLog.ToString(), Severity.Error);
+            SelectedVideo = "";
+            return;
+        }
+        SelectedVideoData = frames.ToArray();
+        
+        converting = false;
+        StateHasChanged();
+        Snackbar.Add("Video successfully processed!", Severity.Success);
+        await OnAChange.InvokeAsync(this);
+    }
+}

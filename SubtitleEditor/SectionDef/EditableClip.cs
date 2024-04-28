@@ -13,11 +13,33 @@ namespace SubtitleEditor.SectionDef
         }
     }
     public class VideoClip : Clip
-    {
-        public VideoClip(double start, double end, string source) : base(start, end, source)
-        {
-        }
-    }
+	{
+		public VideoClip(double start, double end) : base(start, end, "")
+		{
+		}
+		public SKBitmap[] Data { get; set; }
+		public float Size { get; set; } = 100;
+		public float X { get; set; } = 50;
+		public float Y { get; set; } = 50 * 9 / 16.0F;
+		public float fps { get; set; } = 30;
+		public override void Render(double position, SKCanvas canvas, RenderConfig config)
+		{
+			if (Data != null && position >= Start && position <= End)
+			{
+				var fractionTimeToRender = (position - this.Start) / (End - Start);
+				var indexToRender = (int)Math.Round((Data.Length - 1) * fractionTimeToRender);
+
+				float aspect = Data[indexToRender].Width / (float)Data[indexToRender].Height;
+				
+				var wid = /* We are gonna force fit */ 100 * (/* User Scale */Size / 100);
+				var hei = wid / aspect;
+				var x = X - wid / 2;
+				var y = Y - hei / 2;
+                RectangleF r = new RectangleF(x, y, wid, hei);
+				canvas.DrawBitmap(Data[indexToRender], new SKRect(r.Left, r.Top, r.Right, r.Bottom));
+			}
+		}
+	}
     public class PhotoClip : Clip
     {
         public SKBitmap Data { get; set; }

@@ -38,7 +38,7 @@
 
 	SKPoint lastMove;
 
-	protected override void OnInitialized()
+	protected override async Task OnInitializedAsync()
 	{
 		sectionBar = new SectionBar(()=> skView?.Invalidate(), 5);
 		sectionBar.SeekPointChanged += async (s, e) => {
@@ -51,6 +51,7 @@
 		sectionBar.Layers[0].Add(new SubtitleClip(30, 40, "ABCD"));
 		sectionBar.Layers[1].Add(new SubtitleClip(25, 35, "ABCD"));
 		sectionBar.Layers[2].Add(new PhotoClip(15, 50));
+		sectionBar.Layers[3].Add(new VideoClip(0, 120));
 		sectionBar.DiableDefaultEmptySectionStrip = false;
 		sectionBar.DiableDefaultSectionGroupStrip = false;
 		sectionBar.DiableDefaultSectionStrip = false;
@@ -60,9 +61,9 @@
 		sectionBar.SeekPosition = 0D;
 		sectionBar.ZoomEnd = 120D;
 		sectionBar.ZoomStart = 0D;
+		sectionBar.ResetBounds();
 
 		sectionBar.OnDebug += (s, e) => Console.WriteLine(e.Message);
-
 	}
 	protected void OnPaint(SKPaintGLSurfaceEventArgs e)
 	{
@@ -80,6 +81,11 @@
 
 		if (sectionBar != null)
 			sectionBar.OnPaint(e);	
+	}
+	public void ResetMaxTime()
+	{
+		sectionBar.ResetMaxTime();
+		skView.Invalidate();
 	}
 	public void OnMouseMove(Microsoft.AspNetCore.Components.Web.MouseEventArgs e)
 	{

@@ -99,11 +99,29 @@ namespace SubtitleEditor.SectionDef
         public event SectionsAddedHandler SectionsAdded;
         public event SeekBarHandler SeekPointChanged;
         public event EventHandler OnRequestToRenderPreview;
-        public List<List<Clip>> GetClipsToRender(double position)
+        public void ResetBounds()
+        {
+            MouseMove(this, new MouseEventArgs()
+            {
+                Location = new Point(
+                LabelsSectionWidth + 10, zsw * 2 + 1)
+            });
+        }
+
+		public List<List<Clip>> GetClipsToRender(double position)
         {
             return Layers;
         }
-        public void RenderFrame(double position, SKCanvas canvas, RenderConfig config)
+        public void ResetMaxTime()
+        {
+            foreach(var layer in Layers)
+                foreach (var clip in layer)
+                    if (clip.End > Maximum)
+                        Maximum = clip.End;
+            
+        }
+
+		public void RenderFrame(double position, SKCanvas canvas, RenderConfig config)
         {
             var ll = new List<List<Clip>>();
             ll.AddRange(Layers);

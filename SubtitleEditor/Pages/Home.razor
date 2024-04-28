@@ -65,9 +65,9 @@
                     OnAChange="PhotoEditorOnAChange"
                     SelectedImage="@ClipEditorSource"
                     SelectedImageData="@PhotoEditorData"
-                    Size="PhotoEditorSize"
-                    XPosition="PhotoEditorXPosition"
-                    YPosition="PhotoEditorYPosition"
+                    Size="GraphicEditorSize"
+                    XPosition="GraphicEditorXPosition"
+                    YPosition="GraphicEditorYPosition"
                     StartingHH="@ClipEditorStartingHH"
                     StartingMM="@ClipEditorStartingMM"
                     StartingSS="@ClipEditorStartingSS"
@@ -76,6 +76,25 @@
                     DurationMM="@ClipEditorDurationMM"
                     DurationSS="@ClipEditorDurationSS"
                     DurationFF="@ClipEditorDurationFF"></SubtitleEditor.Editors.PhotoClipEditor>
+                }
+                @if (ClipUnderEditing is VideoClip)
+                {
+
+                    <SubtitleEditor.Editors.VideoClipEditor 
+                    OnAChange="VideoEditorOnAChange"
+                    SelectedVideo="@ClipEditorSource"
+                    SelectedVideoData="@VideoEditorData"
+                    Size="GraphicEditorSize"
+                    XPosition="GraphicEditorXPosition"
+                    YPosition="GraphicEditorYPosition"
+                    StartingHH="@ClipEditorStartingHH"
+                    StartingMM="@ClipEditorStartingMM"
+                    StartingSS="@ClipEditorStartingSS"
+                    StartingFF="@ClipEditorStartingFF"
+                    DurationHH="@ClipEditorDurationHH"
+                    DurationMM="@ClipEditorDurationMM"
+                    DurationSS="@ClipEditorDurationSS"
+                    DurationFF="@ClipEditorDurationFF"></SubtitleEditor.Editors.VideoClipEditor>
                 }
             </MudPaper>
         </MudItem>
@@ -191,9 +210,27 @@
             var photoClip = (PhotoClip)ClipUnderEditing;
             ClipEditorSource = photoClip.Source;
             PhotoEditorData = photoClip.Data;
-            PhotoEditorSize = photoClip.Size;
-            PhotoEditorXPosition = photoClip.X;
-            PhotoEditorYPosition = photoClip.Y;
+            GraphicEditorSize = photoClip.Size;
+            GraphicEditorXPosition = photoClip.X;
+            GraphicEditorYPosition = photoClip.Y;
+            ClipEditorStartingHH = (int)(ClipUnderEditing.Start / 3600);
+            ClipEditorStartingMM = (int)(ClipUnderEditing.Start / 60);
+            ClipEditorStartingSS = (int)(ClipUnderEditing.Start);
+            ClipEditorStartingFF = (ClipUnderEditing.Start - (int)(ClipUnderEditing.Start)) * 30;
+            var duration = ClipUnderEditing.End - ClipUnderEditing.Start;
+            ClipEditorDurationHH = (int)(duration / 3600);
+            ClipEditorDurationMM = (int)(duration / 60);
+            ClipEditorDurationSS = (int)(duration);
+            ClipEditorDurationFF = (duration - (int)(duration)) * 30;
+        }
+        else if (clip is VideoClip)
+        {
+            var videoClip = (VideoClip)ClipUnderEditing;
+            ClipEditorSource = videoClip.Source;
+            VideoEditorData = videoClip.Data;
+            GraphicEditorSize = videoClip.Size;
+            GraphicEditorXPosition = videoClip.X;
+            GraphicEditorYPosition = videoClip.Y;
             ClipEditorStartingHH = (int)(ClipUnderEditing.Start / 3600);
             ClipEditorStartingMM = (int)(ClipUnderEditing.Start / 60);
             ClipEditorStartingSS = (int)(ClipUnderEditing.Start);
@@ -289,9 +326,9 @@
     // Photo Clip Editor
 
     protected SkiaSharp.SKBitmap PhotoEditorData { get; set; }
-    protected float PhotoEditorSize { get; set; }
-    protected float PhotoEditorXPosition {get; set; }
-    protected float PhotoEditorYPosition { get; set; }
+    protected float GraphicEditorSize { get; set; }
+    protected float GraphicEditorXPosition {get; set; }
+    protected float GraphicEditorYPosition { get; set; }
     public void PhotoEditorOnAChange(SubtitleEditor.Editors.PhotoClipEditor photoEditor)
     {
         if (ClipUnderEditing == null)
@@ -322,9 +359,9 @@
             // Round 2
             ClipEditorSource = photoEditor.SelectedImage;
             PhotoEditorData = photoEditor.SelectedImageData;
-            PhotoEditorSize = photoEditor.Size;
-            PhotoEditorXPosition = photoEditor.XPosition;
-            PhotoEditorYPosition = photoEditor.YPosition;
+            GraphicEditorSize = photoEditor.Size;
+            GraphicEditorXPosition = photoEditor.XPosition;
+            GraphicEditorYPosition = photoEditor.YPosition;
             ClipEditorStartingHH = photoEditor.StartingHH;
             ClipEditorStartingMM = photoEditor.StartingMM;
             ClipEditorStartingSS = photoEditor.StartingSS;
@@ -333,6 +370,59 @@
             ClipEditorDurationMM = photoEditor.DurationMM;
             ClipEditorDurationSS = photoEditor.DurationSS;
             ClipEditorDurationFF = photoEditor.DurationFF;
+            sectionBarControl.Invalidate();
+            renderPreview.Invalidate();
+        }
+    }
+
+
+    // Video Clip Editor
+
+    protected SkiaSharp.SKBitmap[] VideoEditorData { get; set; }
+    public void VideoEditorOnAChange(SubtitleEditor.Editors.VideoClipEditor videoEditor)
+    {
+        if (ClipUnderEditing == null)
+            return;
+        if (ClipUnderEditing is VideoClip)
+        {
+            var videoClip = (VideoClip)ClipUnderEditing;
+            videoClip.Source = videoEditor.SelectedVideo;
+            videoClip.Data = videoEditor.SelectedVideoData;
+            if (videoEditor.SelectedVideoData != null)
+                videoClip.End = videoClip.Start + (videoEditor.SelectedVideoData.Length / 30.0F);
+            sectionBarControl.ResetMaxTime();
+            videoClip.Size = videoEditor.Size;
+            videoClip.X = videoEditor.XPosition;
+            videoClip.Y = videoEditor.YPosition;
+            double duration(double h, double m, double s, double f)
+            {
+                return h * 3600 + m * 60 + s + f / 30;
+            }
+            ClipUnderEditing.Start = duration(
+                videoEditor.StartingHH,
+                videoEditor.StartingMM,
+                videoEditor.StartingSS,
+                videoEditor.StartingFF);
+            ClipUnderEditing.End = ClipUnderEditing.Start + duration(
+                videoEditor.DurationHH,
+                videoEditor.DurationMM,
+                videoEditor.DurationSS,
+                videoEditor.DurationFF);
+
+            // Round 2
+            ClipEditorSource = videoEditor.SelectedVideo;
+            VideoEditorData = videoEditor.SelectedVideoData;
+            GraphicEditorSize = videoEditor.Size;
+            GraphicEditorXPosition = videoEditor.XPosition;
+            GraphicEditorYPosition = videoEditor.YPosition;
+            ClipEditorStartingHH = videoEditor.StartingHH;
+            ClipEditorStartingMM = videoEditor.StartingMM;
+            ClipEditorStartingSS = videoEditor.StartingSS;
+            ClipEditorStartingFF = videoEditor.StartingFF;
+            ClipEditorDurationHH = videoEditor.DurationHH;
+            ClipEditorDurationMM = videoEditor.DurationMM;
+            ClipEditorDurationSS = videoEditor.DurationSS;
+            ClipEditorDurationFF = videoEditor.DurationFF;
             sectionBarControl.Invalidate();
             renderPreview.Invalidate();
         }
