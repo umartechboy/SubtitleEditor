@@ -29,6 +29,8 @@
 	public double SeekPosition { get; set; }
 	[Parameter]
 	public EventCallback<Clip> EditClip { get; set; }
+	[Parameter]
+	public EventCallback RenderPreview { get; set; }
 
 	protected SKGLView skView = null;
 	protected SectionBar sectionBar;
@@ -43,10 +45,12 @@
 			SeekPosition = e.Value;
 			await SeekUpdate.InvokeAsync(e.Value); 
 		};
+		sectionBar.OnRequestToRenderPreview += async (s, e) => await RenderPreview.InvokeAsync();
 		sectionBar.OnClipEditRequest += async (s, e) => await EditClip.InvokeAsync(e.Clip);
-		sectionBar.Layers[0].Add(new SubtitleClip(10, 20, "Hello, world"));
-		sectionBar.Layers[1].Add(new SubtitleClip(20, 30, "ABCD"));
-		sectionBar.Layers[2].Add(new SubtitleClip(30, 40, "[This is sub]"));
+		sectionBar.Layers[0].Add(new SubtitleClip(10, 30, "Hello, world"));
+		sectionBar.Layers[0].Add(new SubtitleClip(30, 40, "ABCD"));
+		sectionBar.Layers[1].Add(new SubtitleClip(25, 35, "ABCD"));
+		sectionBar.Layers[2].Add(new PhotoClip(15, 50));
 		sectionBar.DiableDefaultEmptySectionStrip = false;
 		sectionBar.DiableDefaultSectionGroupStrip = false;
 		sectionBar.DiableDefaultSectionStrip = false;

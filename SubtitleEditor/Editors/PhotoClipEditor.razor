@@ -1,0 +1,129 @@
+﻿@using MudBlazor.Utilities
+@using SubtitleEditor.SectionDef
+<MudGrid>
+    <MudItem md="3" Class="py-0">
+         <MudNumericField @bind-Value="StartingHH" TextChanged="@OnATextChanged" Label="hours" Immediate="true"  Variant="Variant.Filled" Min="0.0" Max="1000" />
+     </MudItem>
+     <MudItem md="3" Class="py-0">
+         <MudNumericField @bind-Value="StartingMM" TextChanged="@OnATextChanged" Label="minutes" Immediate="true"  Variant="Variant.Filled" Min="0.0" Max="59" />
+     </MudItem>
+     <MudItem md="3" Class="py-0">
+         <MudNumericField @bind-Value="StartingSS" TextChanged="@OnATextChanged" Label="seconds" Immediate="true"  Variant="Variant.Filled" Min="0.0" Max="59" />
+     </MudItem>
+     <MudItem md="3" Class="py-0">
+         <MudNumericField @bind-Value="StartingFF" TextChanged="@OnATextChanged" Label="frame" Immediate="true"  Variant="Variant.Filled" Min="0.0" Max="29" />
+     </MudItem>
+     <MudItem md="12" Class="py-0">
+         <MudText GutterBottom="true">Start Time</MudText>
+     </MudItem>
+     <MudDivider DividerType="DividerType.FullWidth" />
+     <MudItem md="3" Class="py-0">
+         <MudNumericField Value="@DurationHH" TextChanged="@OnATextChanged" Label="hours" Immediate="true"  Variant="Variant.Filled" Min="0.0" Max="1000" />
+     </MudItem>
+     <MudItem md="3" Class="py-0">
+         <MudNumericField @bind-Value="@DurationMM" TextChanged="@OnATextChanged" Label="minutes" Immediate="true"  Variant="Variant.Filled" Min="0.0" Max="59" />
+     </MudItem>
+     <MudItem md="3" Class="py-0">
+         <MudNumericField @bind-Value="DurationSS" TextChanged="@OnATextChanged" Label="seconds" Immediate="true"  Variant="Variant.Filled" Min="0.0" Max="59" />
+     </MudItem>
+     <MudItem md="3" Class="py-0">
+         <MudNumericField @bind-Value="DurationFF" TextChanged="@OnATextChanged" Label="frame" Immediate="true"  Variant="Variant.Filled" Min="0.0" Max="29" />
+     </MudItem>
+     <MudItem md="12" Class="py-0">
+         <MudText GutterBottom="true">Duration</MudText>
+     </MudItem>
+     <MudDivider DividerType="DividerType.FullWidth" />
+    <MudItem md="6" Class="py-0">
+        <MudSlider T="float" Value="@XPosition" ValueChanged="@OnXPositionChanged" Immediate=true Min="0" Max="100">Horizontal Position</MudSlider>
+    </MudItem>
+    <MudItem md="6" Class="py-0">
+        <MudSlider T="float" Value="@YPosition" ValueChanged="@OnYPositionChanged" Immediate=true Min="0" Max="100">Vertical Position</MudSlider>
+    </MudItem>
+    <MudItem md="6" Class="py-0">
+        <MudSlider T="float" Value="@Size" ValueChanged="@OnSizeChanged" Immediate=true Min="1" Max="300">Size</MudSlider>
+    </MudItem>
+    
+    @if (!string.IsNullOrEmpty(SelectedImage))
+    {
+        <MudItem md="12" Class="py-0">
+            <img width="100%" src="@SelectedImage" />
+        </MudItem>
+    }
+    <MudItem md="12" Class="py-0">
+        <MudFileUpload T="IBrowserFile" Accept=".png, .jpg, .bmp" FilesChanged="ImageUploaderFilesSelected">
+            <ButtonTemplate>
+                <MudButton HtmlTag="label"
+                           Variant="Variant.Outlined"
+                           Color="Color.Primary"
+                           for="@context.Id">
+                    Upload Photo <MudIcon Icon="@Icons.Material.Filled.CloudUpload" Title="Favorite" />
+                </MudButton>
+            </ButtonTemplate>
+        </MudFileUpload>
+    </MudItem>
+</MudGrid>
+@inject ISnackbar Snackbar
+@code {
+    [Parameter]
+    public string SelectedImage { get; set; }
+    [Parameter]
+    public SkiaSharp.SKBitmap SelectedImageData { get; set; }
+    [Parameter]
+    public float Size { get; set; }
+    [Parameter]
+    public float XPosition { get; set; }
+    [Parameter]
+    public float YPosition { get; set; }
+    [Parameter] 
+    public double StartingHH { get; set; }    
+    [Parameter] 
+    public double StartingMM { get; set; }    
+    [Parameter] 
+    public double StartingSS { get; set; }    
+    [Parameter] 
+    public double StartingFF { get; set; }    
+    [Parameter] 
+    public double DurationHH { get; set; }    
+    [Parameter] 
+    public double DurationMM { get; set; }    
+    [Parameter] 
+    public double DurationSS { get; set; }    
+    [Parameter] 
+    public double DurationFF { get; set; }
+    [Parameter]
+    public EventCallback<PhotoClipEditor> OnAChange { get; set; }
+    protected async Task OnATextChanged(string d)
+    {
+        await OnAChange.InvokeAsync(this);
+    }
+    private async Task OnXPositionChanged(float value) // Ensure correct casing (OnValueChanged)
+    {
+        XPosition = value;
+        await OnAChange.InvokeAsync(this);
+    }
+
+    private async Task OnYPositionChanged(float value) // Ensure correct casing (OnValueChanged)
+    {
+        YPosition = value;
+        await OnAChange.InvokeAsync(this);
+    }
+    private async Task OnSizeChanged(float value) // Ensure correct casing (OnValueChanged)
+    {
+        Size = value;
+        await OnAChange.InvokeAsync(this);
+    }
+    protected async Task ImageUploaderFilesSelected(IBrowserFile file)
+    {
+        //read all bytes
+        using var stream = file.OpenReadStream(100000000); //Max size for file that can be read
+        var inputFileDataBuffer = new byte[file.Size];
+
+        //read all bytes
+        await stream.ReadAsync(inputFileDataBuffer);
+        // Create image preview, pepare for video conversion
+        SelectedImage = $"data:{file.ContentType};base64,{Convert.ToBase64String(inputFileDataBuffer)}";
+        SelectedImageData = SkiaSharp.SKBitmap.Decode(inputFileDataBuffer);
+        StateHasChanged();
+        await OnAChange.InvokeAsync(this);
+    }
+}

@@ -20,8 +20,25 @@ namespace SubtitleEditor.SectionDef
     }
     public class PhotoClip : Clip
     {
-        public PhotoClip(double start, double end, string source) : base(start, end, source)
+        public SKBitmap Data { get; set; }
+        public float Size { get; set; } = 100;
+        public float X { get; set; } = 50;
+        public float Y { get; set; } = 50 * 9 / 16.0F;
+        public PhotoClip(double start, double end) : base(start, end, "")
         {
+        }
+        public override void Render(double position, SKCanvas canvas, RenderConfig config)
+        {
+            if (Data != null && position >= Start && position <= End)
+            {
+                float aspect = Data.Width / (float)Data.Height;
+                var wid = /* We are gonna force fit */ 100 * (/* User Scale */Size / 100);
+                var hei = wid / aspect;
+                var x = X - wid / 2;
+                var y = Y - hei / 2;
+                RectangleF r = new RectangleF(x, y, wid, hei);
+                canvas.DrawBitmap(Data, new SKRect(r.Left, r.Top, r.Right, r.Bottom));
+            }
         }
     }
     public class SubtitleClip : Clip
@@ -90,7 +107,7 @@ namespace SubtitleEditor.SectionDef
             foreach (var wrappedLine in wrappedLines)
             {
                 // Lets now calculate xOffset for centered placement at x
-
+                
                 var rc = wrappedLine.Key;
                 if (config.ShadowSize > 0)
                     defPaint.ImageFilter = SKImageFilter.CreateDropShadow(config.ShadowDistance, config.ShadowDistance, config.ShadowSize, config.ShadowSize, config.ShadowColor);
@@ -102,10 +119,15 @@ namespace SubtitleEditor.SectionDef
         {
             if (Source.Trim().Length > 0 && position >= Start - config.SubtitleOverlap && position <= End + config.SubtitleOverlap)
             {
+                float opacity = 1;
+                if (position <= Start)
+                    opacity = (float)((position - (Start - config.SubtitleOverlap)) / config.SubtitleOverlap);
+                else if (position > End)
+                    opacity = (float)(((End + config.SubtitleOverlap) - position) / config.SubtitleOverlap);
                 DrawWrapLines(config.SubtitleLocation.X, config.SubtitleLocation.Y, Source, 90, canvas,
                 new SKPaint(config.SubTitlesFont)
                 {
-                    Color = config.SubtitleColor,
+                    Color = config.SubtitleColor.WithAlpha((byte)(255 * opacity)),
                     IsAntialias = true
                 }, config);
             }
@@ -121,7 +143,7 @@ namespace SubtitleEditor.SectionDef
         public SKColor SubtitleColor { get; set; }
 		public SKColor ShadowColor { get; set; }
 
-		public double SubtitleOverlap { get; set; }
+        public float SubtitleOverlap { get; set; } = 1;
         public SKPoint SubtitleLocation { get; set; }
     }
 }

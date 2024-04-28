@@ -20,6 +20,7 @@
                 <div style="width: 100%; height: 25vh;">
                     <SectionBarWebControl @ref=sectionBarControl
                                           SeekUpdate="SeekUpdate"
+                                          RenderPreview="@RenderPreview"
                                           EditClip="EditClipRequest"></SectionBarWebControl>
                 </div>
             </MudPaper>
@@ -36,24 +37,45 @@
             <MudPaper Class="d-flex align-center justify-center mud-width-full py-8 px-2">
                 @if (ClipUnderEditing is SubtitleClip)
                 {
-                    <SubtitleEditor.Editors.SubtitleClipEditor OnAChange="SubtitleEditorOnAChange"
-                                                               Text="@SubtitleEditorText"
-                                                               FontFamily="@SubtitleEditorFontFamily"
-                                                               TypeFaces="@TypeFaces"
-                                                               FontSize="@SubtitleEditorFontSize"
-                                                               YPosition="@SubtitleEditorYPosition"
-                                                               ShadowSize="@SubtitleEditorShadowSize"
-                                                               ShadowDistance="@SubtitleEditorShadowDistance"
-                                                               TextColor="@SubtitleEditorTextColor"
-                                                               ShadowColor="@SubtitleEditorShadowColor"
-                                                               StartingHH="@SubtitleEditorStartingHH"
-                                                               StartingMM="@SubtitleEditorStartingMM"
-                                                               StartingSS="@SubtitleEditorStartingSS"
-                                                               StartingFF="@SubtitleEditorStartingFF"
-                                                               DurationHH="@SubtitleEditorDurationHH"
-                                                               DurationMM="@SubtitleEditorDurationMM"
-                                                               DurationSS="@SubtitleEditorDurationSS"
-                                                               DurationFF="@SubtitleEditorDurationFF"></SubtitleEditor.Editors.SubtitleClipEditor>
+                    <SubtitleEditor.Editors.SubtitleClipEditor 
+                    OnAChange="SubtitleEditorOnAChange"
+                    Text="@ClipEditorSource"
+                    FontFamily="@SubtitleEditorFontFamily"
+                    TypeFaces="@TypeFaces"
+                    FontSize="@SubtitleEditorFontSize"
+                    YPosition="@SubtitleEditorYPosition"
+                    ShadowSize="@SubtitleEditorShadowSize"
+                    ShadowDistance="@SubtitleEditorShadowDistance"
+                    TextColor="@SubtitleEditorTextColor"
+                    ShadowColor="@SubtitleEditorShadowColor"
+                    Overlap="@SubtitleEditorOverlap"
+                    StartingHH="@ClipEditorStartingHH"
+                    StartingMM="@ClipEditorStartingMM"
+                    StartingSS="@ClipEditorStartingSS"
+                    StartingFF="@ClipEditorStartingFF"
+                    DurationHH="@ClipEditorDurationHH"
+                    DurationMM="@ClipEditorDurationMM"
+                    DurationSS="@ClipEditorDurationSS"
+                    DurationFF="@ClipEditorDurationFF"></SubtitleEditor.Editors.SubtitleClipEditor>
+                }
+                @if (ClipUnderEditing is PhotoClip)
+                {
+                    
+                    <SubtitleEditor.Editors.PhotoClipEditor 
+                    OnAChange="PhotoEditorOnAChange"
+                    SelectedImage="@ClipEditorSource"
+                    SelectedImageData="@PhotoEditorData"
+                    Size="PhotoEditorSize"
+                    XPosition="PhotoEditorXPosition"
+                    YPosition="PhotoEditorYPosition"
+                    StartingHH="@ClipEditorStartingHH"
+                    StartingMM="@ClipEditorStartingMM"
+                    StartingSS="@ClipEditorStartingSS"
+                    StartingFF="@ClipEditorStartingFF"
+                    DurationHH="@ClipEditorDurationHH"
+                    DurationMM="@ClipEditorDurationMM"
+                    DurationSS="@ClipEditorDurationSS"
+                    DurationFF="@ClipEditorDurationFF"></SubtitleEditor.Editors.PhotoClipEditor>
                 }
             </MudPaper>
         </MudItem>
@@ -64,7 +86,6 @@
 @inject HttpClient HTTP
 @code{
     SectionBarWebControl sectionBarControl { get; set; }
-    Clip ClipUnderEditing;
     public SKGLView renderPreview { get; set; }
     public string CurrentTime {get;set;} = "";
     static RenderConfig config;
@@ -102,6 +123,10 @@
         CurrentTime = common.timeToString(t);
         renderPreview.Invalidate();
     }
+    void RenderPreview()
+    {
+        renderPreview.Invalidate();
+    }
 
     protected void OnRenderPaint(SKPaintGLSurfaceEventArgs e)
     {
@@ -132,9 +157,58 @@
         e.Surface.Canvas.Scale(1 / scale, 1 / scale);
         canvas.Translate(-(e.Info.Width - width) / 2, -(e.Info.Height - height) / 2);
     }
+    //Common Clip Editing
+    Clip ClipUnderEditing;
 
+    public void EditClipRequest(Clip clip)
+    {
+        ClipUnderEditing = clip;
+        if (clip == null)
+            return;
+        if (clip is SubtitleClip)
+        {
+            ClipEditorSource = ClipUnderEditing.Source;
+            SubtitleEditorFontFamily = config.SubTitlesFont.Typeface.FamilyName;
+            SubtitleEditorFontSize = config.SubTitlesFont.Size;
+            SubtitleEditorYPosition = (float)(config.SubtitleLocation.Y * config.AspectRatio);
+            SubtitleEditorShadowSize = config.ShadowSize;
+            SubtitleEditorShadowDistance = config.ShadowDistance;
+            SubtitleEditorTextColor = SKColorToMud(config.SubtitleColor);
+            SubtitleEditorShadowColor = SKColorToMud(config.ShadowColor);
+            SubtitleEditorOverlap = config.SubtitleOverlap;
+            ClipEditorStartingHH = (int)(ClipUnderEditing.Start / 3600);
+            ClipEditorStartingMM = (int)(ClipUnderEditing.Start / 60);
+            ClipEditorStartingSS = (int)(ClipUnderEditing.Start);
+            ClipEditorStartingFF = (ClipUnderEditing.Start - (int)(ClipUnderEditing.Start)) * 30;
+            var duration = ClipUnderEditing.End - ClipUnderEditing.Start;
+            ClipEditorDurationHH = (int)(duration / 3600);
+            ClipEditorDurationMM = (int)(duration / 60);
+            ClipEditorDurationSS = (int)(duration);
+            ClipEditorDurationFF = (duration - (int)(duration)) * 30;
+        }
+        else if(clip is PhotoClip)
+        {
+            var photoClip = (PhotoClip)ClipUnderEditing;
+            ClipEditorSource = photoClip.Source;
+            PhotoEditorData = photoClip.Data;
+            PhotoEditorSize = photoClip.Size;
+            PhotoEditorXPosition = photoClip.X;
+            PhotoEditorYPosition = photoClip.Y;
+            ClipEditorStartingHH = (int)(ClipUnderEditing.Start / 3600);
+            ClipEditorStartingMM = (int)(ClipUnderEditing.Start / 60);
+            ClipEditorStartingSS = (int)(ClipUnderEditing.Start);
+            ClipEditorStartingFF = (ClipUnderEditing.Start - (int)(ClipUnderEditing.Start)) * 30;
+            var duration = ClipUnderEditing.End - ClipUnderEditing.Start;
+            ClipEditorDurationHH = (int)(duration / 3600);
+            ClipEditorDurationMM = (int)(duration / 60);
+            ClipEditorDurationSS = (int)(duration);
+            ClipEditorDurationFF = (duration - (int)(duration)) * 30;
+        }
+    }
 
-    string SubtitleEditorText { get; set; }
+    // Subtitle Clip Editor
+
+    string ClipEditorSource { get; set; }
     string SubtitleEditorFontFamily { get; set; }
     float SubtitleEditorFontSize { get; set; }
     float SubtitleEditorYPosition { get; set; }
@@ -142,14 +216,15 @@
     float SubtitleEditorShadowDistance { get; set; }
     MudColor SubtitleEditorTextColor { get; set; }
     MudColor SubtitleEditorShadowColor { get; set; }
-    double SubtitleEditorStartingHH {get;set;}
-    double SubtitleEditorStartingMM {get;set;}
-    double SubtitleEditorStartingSS {get;set;}
-    double SubtitleEditorStartingFF {get;set;}
-    double SubtitleEditorDurationHH {get;set;}
-    double SubtitleEditorDurationMM {get;set;}
-    double SubtitleEditorDurationSS {get;set;}
-    double SubtitleEditorDurationFF { get; set; }
+    double SubtitleEditorOverlap { get; set; }
+    double ClipEditorStartingHH {get;set;}
+    double ClipEditorStartingMM {get;set;}
+    double ClipEditorStartingSS {get;set;}
+    double ClipEditorStartingFF {get;set;}
+    double ClipEditorDurationHH {get;set;}
+    double ClipEditorDurationMM {get;set;}
+    double ClipEditorDurationSS {get;set;}
+    double ClipEditorDurationFF { get; set; }
 
     SkiaSharp.SKColor MudColorToSK(MudColor mud)
     {
@@ -159,75 +234,108 @@
     {
         return new MudColor(sk.Red, sk.Green, sk.Blue, sk.Alpha);
     }
-    public void EditClipRequest(Clip clip){
-        ClipUnderEditing = clip;
-        if (clip == null)
-            return;
-        SubtitleEditorText = ClipUnderEditing.Source;
-        SubtitleEditorFontFamily = config.SubTitlesFont.Typeface.FamilyName;
-        SubtitleEditorFontSize = config.SubTitlesFont.Size;
-        SubtitleEditorYPosition = (float)(config.SubtitleLocation.Y * config.AspectRatio);
-        SubtitleEditorShadowSize = config.ShadowSize;
-        SubtitleEditorShadowDistance =config.ShadowDistance;
-        SubtitleEditorTextColor = SKColorToMud(config.SubtitleColor);
-        SubtitleEditorShadowColor = SKColorToMud(config.ShadowColor);
-        SubtitleEditorStartingHH = (int)(ClipUnderEditing.Start / 3600);
-        SubtitleEditorStartingMM = (int)(ClipUnderEditing.Start / 60);
-        SubtitleEditorStartingSS = (int)(ClipUnderEditing.Start);
-        SubtitleEditorStartingFF = (ClipUnderEditing.Start - (int)(ClipUnderEditing.Start)) * 30;
-        var duration = ClipUnderEditing.End - ClipUnderEditing.Start;
-        SubtitleEditorDurationHH = (int)(duration / 3600);
-        SubtitleEditorDurationMM = (int)(duration / 60);
-        SubtitleEditorDurationSS = (int)(duration);
-        SubtitleEditorDurationFF = (duration - (int)(duration)) * 30;
-
-    }
-    public void SubtitleEditorOnAChange(SubtitleEditor.Editors.SubtitleClipEditor SubtitleEditor)
+    public void SubtitleEditorOnAChange(SubtitleEditor.Editors.SubtitleClipEditor subtitleEditor)
     {
 
         if (ClipUnderEditing == null)
             return;
         if (ClipUnderEditing is SubtitleClip)
         {
-
-            ClipUnderEditing.Source = SubtitleEditor.Text;
-            config.SubTitlesFont = new SkiaSharp.SKFont(TypeFaces.Find(tf => tf.FamilyName == SubtitleEditor.FontFamily), SubtitleEditor.FontSize);
-            config.SubtitleLocation = new SkiaSharp.SKPoint(config.SubtitleLocation.X, SubtitleEditor.YPosition / config.AspectRatio);
-            config.ShadowSize = SubtitleEditor.ShadowSize;
-            config.ShadowDistance = SubtitleEditor.ShadowDistance;
-            config.SubtitleColor = MudColorToSK(SubtitleEditor.TextColor);
-            config.ShadowColor = MudColorToSK(SubtitleEditor.ShadowColor);
+            ClipUnderEditing.Source = subtitleEditor.Text;
+            config.SubTitlesFont = new SkiaSharp.SKFont(TypeFaces.Find(tf => tf.FamilyName == subtitleEditor.FontFamily), subtitleEditor.FontSize);
+            config.SubtitleLocation = new SkiaSharp.SKPoint(config.SubtitleLocation.X, subtitleEditor.YPosition / config.AspectRatio);
+            config.ShadowSize = subtitleEditor.ShadowSize;
+            config.ShadowDistance = subtitleEditor.ShadowDistance;
+            config.SubtitleOverlap = (float)subtitleEditor.Overlap;
+            config.SubtitleColor = MudColorToSK(subtitleEditor.TextColor);
+            config.ShadowColor = MudColorToSK(subtitleEditor.ShadowColor);
             double duration(double h, double m, double s, double f)
-			{
-				return h * 3600 + m * 60 + s + f / 30;
-			}
-			ClipUnderEditing.Start = duration(
-				SubtitleEditor.StartingHH,
-				SubtitleEditor.StartingMM,
-				SubtitleEditor.StartingSS,
-				SubtitleEditor.StartingFF);
-			ClipUnderEditing.End = ClipUnderEditing.Start + duration(
-				SubtitleEditor.DurationHH,
-				SubtitleEditor.DurationMM,
-				SubtitleEditor.DurationSS,
-				SubtitleEditor.DurationFF);
-			SubtitleEditorText = SubtitleEditor.Text;
-			SubtitleEditorFontFamily = config.SubTitlesFont.Typeface.FamilyName;
-			SubtitleEditorFontSize = config.SubTitlesFont.Size;
-			SubtitleEditorYPosition = config.SubtitleLocation.Y * config.AspectRatio;
-			SubtitleEditorShadowSize = config.ShadowSize;
-			SubtitleEditorShadowDistance = config.ShadowDistance;
-			SubtitleEditorShadowColor = SKColorToMud(config.ShadowColor);
-			SubtitleEditorStartingHH = SubtitleEditor.StartingHH;
-			SubtitleEditorStartingMM = SubtitleEditor.StartingMM;
-			SubtitleEditorStartingSS = SubtitleEditor.StartingSS;
-			SubtitleEditorStartingFF = SubtitleEditor.StartingFF;
-			SubtitleEditorDurationHH = SubtitleEditor.DurationHH;
-			SubtitleEditorDurationMM = SubtitleEditor.DurationMM;
-			SubtitleEditorDurationSS = SubtitleEditor.DurationSS;
-			SubtitleEditorDurationFF = SubtitleEditor.DurationFF;
-			sectionBarControl.Invalidate();
-			renderPreview.Invalidate();
-		}
-	}
+            {
+                return h * 3600 + m * 60 + s + f / 30;
+            }
+            ClipUnderEditing.Start = duration(
+                subtitleEditor.StartingHH,
+                subtitleEditor.StartingMM,
+                subtitleEditor.StartingSS,
+                subtitleEditor.StartingFF);
+            ClipUnderEditing.End = ClipUnderEditing.Start + duration(
+                subtitleEditor.DurationHH,
+                subtitleEditor.DurationMM,
+                subtitleEditor.DurationSS,
+                subtitleEditor.DurationFF);
+            ClipEditorSource = subtitleEditor.Text;
+
+            // Round 2
+            SubtitleEditorFontFamily = config.SubTitlesFont.Typeface.FamilyName;
+            SubtitleEditorFontSize = config.SubTitlesFont.Size;
+            SubtitleEditorYPosition = config.SubtitleLocation.Y * config.AspectRatio;
+            SubtitleEditorShadowSize = config.ShadowSize;
+            SubtitleEditorShadowDistance = config.ShadowDistance;
+            SubtitleEditorShadowColor = SKColorToMud(config.ShadowColor);
+            SubtitleEditorOverlap = config.SubtitleOverlap;
+            ClipEditorStartingHH = subtitleEditor.StartingHH;
+            ClipEditorStartingMM = subtitleEditor.StartingMM;
+            ClipEditorStartingSS = subtitleEditor.StartingSS;
+            ClipEditorStartingFF = subtitleEditor.StartingFF;
+            ClipEditorDurationHH = subtitleEditor.DurationHH;
+            ClipEditorDurationMM = subtitleEditor.DurationMM;
+            ClipEditorDurationSS = subtitleEditor.DurationSS;
+            ClipEditorDurationFF = subtitleEditor.DurationFF;
+            sectionBarControl.Invalidate();
+            renderPreview.Invalidate();
+        }
+    }
+
+    // Photo Clip Editor
+
+    protected SkiaSharp.SKBitmap PhotoEditorData { get; set; }
+    protected float PhotoEditorSize { get; set; }
+    protected float PhotoEditorXPosition {get; set; }
+    protected float PhotoEditorYPosition { get; set; }
+    public void PhotoEditorOnAChange(SubtitleEditor.Editors.PhotoClipEditor photoEditor)
+    {
+        if (ClipUnderEditing == null)
+            return;
+        if (ClipUnderEditing is PhotoClip)
+        {
+            var photoClip = (PhotoClip)ClipUnderEditing;
+            photoClip.Source = photoEditor.SelectedImage;
+            photoClip.Data = photoEditor.SelectedImageData;
+            photoClip.Size = photoEditor.Size;
+            photoClip.X = photoEditor.XPosition;
+            photoClip.Y = photoEditor.YPosition;
+            double duration(double h, double m, double s, double f)
+            {
+                return h * 3600 + m * 60 + s + f / 30;
+            }
+            ClipUnderEditing.Start = duration(
+                photoEditor.StartingHH,
+                photoEditor.StartingMM,
+                photoEditor.StartingSS,
+                photoEditor.StartingFF);
+            ClipUnderEditing.End = ClipUnderEditing.Start + duration(
+                photoEditor.DurationHH,
+                photoEditor.DurationMM,
+                photoEditor.DurationSS,
+                photoEditor.DurationFF);
+
+            // Round 2
+            ClipEditorSource = photoEditor.SelectedImage;
+            PhotoEditorData = photoEditor.SelectedImageData;
+            PhotoEditorSize = photoEditor.Size;
+            PhotoEditorXPosition = photoEditor.XPosition;
+            PhotoEditorYPosition = photoEditor.YPosition;
+            ClipEditorStartingHH = photoEditor.StartingHH;
+            ClipEditorStartingMM = photoEditor.StartingMM;
+            ClipEditorStartingSS = photoEditor.StartingSS;
+            ClipEditorStartingFF = photoEditor.StartingFF;
+            ClipEditorDurationHH = photoEditor.DurationHH;
+            ClipEditorDurationMM = photoEditor.DurationMM;
+            ClipEditorDurationSS = photoEditor.DurationSS;
+            ClipEditorDurationFF = photoEditor.DurationFF;
+            sectionBarControl.Invalidate();
+            renderPreview.Invalidate();
+        }
+    }
+
 }

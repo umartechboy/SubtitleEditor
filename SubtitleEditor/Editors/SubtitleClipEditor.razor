@@ -75,6 +75,11 @@
     </MudItem>
     <MudItem md="6" Class="py-0">
         <MudSlider T="float" Value="@ShadowDistance" ValueChanged="@OnShadowDistanceChanged" Immediate=true Min="0" Max="20">Shadow Distance</MudSlider>
+    </MudItem>
+    <MudDivider DividerType="DividerType.FullWidth" />
+
+    <MudItem md="12" Class="py-0">
+        <MudNumericField @bind-Value="@Overlap" TextChanged="@OnATextChanged" Label="Fade In/Out" Immediate="true" Variant="Variant.Filled" Min="0.0" Max="10" />
 	</MudItem>
 </MudGrid>
 @inject ISnackbar Snackbar
@@ -96,6 +101,8 @@
     public MudColor ShadowColor { get; set; }
     [Parameter]
     public float YPosition { get; set; }
+    [Parameter]
+    public double Overlap { get; set; }
     [Parameter] 
     public double StartingHH { get; set; }    
     [Parameter] 

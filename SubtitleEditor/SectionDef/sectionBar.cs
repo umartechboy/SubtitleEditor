@@ -98,13 +98,17 @@ namespace SubtitleEditor.SectionDef
         public event SectionsRemovedHandler SectionsRemoved;
         public event SectionsAddedHandler SectionsAdded;
         public event SeekBarHandler SeekPointChanged;
+        public event EventHandler OnRequestToRenderPreview;
         public List<List<Clip>> GetClipsToRender(double position)
         {
             return Layers;
         }
         public void RenderFrame(double position, SKCanvas canvas, RenderConfig config)
         {
-            foreach (var layer in Layers)
+            var ll = new List<List<Clip>>();
+            ll.AddRange(Layers);
+            ll.Reverse();
+            foreach (var layer in ll)
                 foreach (var clip in layer)
                     clip.Render(position, canvas, config);
         }
@@ -428,9 +432,14 @@ namespace SubtitleEditor.SectionDef
                 for (int i = 0; i < Layers[layerIndex].Count; i++)
                 {
 
-                    if ((Layers[layerIndex][i].hoverOver == -1 || Layers[layerIndex][i].hoverOver == 1) && Layers[layerIndex][i].selected)
-                        OnClipEditRequest(this, new ClipArgs() { Clip = Layers[layerIndex][i] });
-                    Layers[layerIndex][i].MouseUp();
+                    if (Layers[layerIndex][i].hoverOver == -1 || Layers[layerIndex][i].hoverOver == 1)
+                    {
+                        if(Layers[layerIndex][i].selected)
+                            OnClipEditRequest(this, new ClipArgs() { Clip = Layers[layerIndex][i] });
+                        OnRequestToRenderPreview?.Invoke(this, EventArgs.Empty);
+                    }
+                    else
+                        Layers[layerIndex][i].MouseUp();
                 }
             Invalidate();
         }
