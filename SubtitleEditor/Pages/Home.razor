@@ -6,53 +6,59 @@
 <PageTitle>Home</PageTitle>
 
 <MudGrid>
-	<MudItem xs="8">
-		<MudPaper Class="d-flex object-center mud-width-full">
-			<SkiaSharp.Views.Blazor.SKGLView @ref=renderPreview
-											 IgnorePixelScaling="true"
-											 OnPaintSurface="OnRenderPaint"
-											 style="width: 100%; height: 70vh;margin: 0px 0px 0px 0px;"></SkiaSharp.Views.Blazor.SKGLView>
-		</MudPaper>
+    <MudItem xs="8">
+        <MudItem xs="12" Class="my-2">
+		    <MudPaper Class="d-flex object-center mud-width-full">
+			    <SkiaSharp.Views.Blazor.SKGLView @ref=renderPreview
+											     IgnorePixelScaling="true"
+											     OnPaintSurface="OnRenderPaint"
+											     style="width: 100%; height: 70vh;margin: 0px 0px 0px 0px;"></SkiaSharp.Views.Blazor.SKGLView>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12">
+		    <MudPaper Class="d-flex object-center mud-width-full">
+                <div style="width: 100%; height: 25vh;">
+                    <SectionBarWebControl @ref=sectionBarControl
+                                          SeekUpdate="SeekUpdate"
+                                          EditClip="EditClipRequest"></SectionBarWebControl>
+                </div>
+            </MudPaper>
+        </MudItem>
 	</MudItem>
+    
 	<MudItem xs="4">
-		<MudPaper Class="d-flex align-center justify-center mud-width-full py-8 px-2">
-			@if (ClipUnderEditing is SubtitleClip)
-			{
-				<SubtitleEditor.Editors.SubtitleClipEditor 
-				OnAChange="SubtitleEditorOnAChange"
-				Text ="@SubtitleEditorText"
-				FontFamily="@SubtitleEditorFontFamily"
-				TypeFaces="@TypeFaces"
-				FontSize="@SubtitleEditorFontSize"
-				YPosition="@SubtitleEditorYPosition"
-				ShadowSize="@SubtitleEditorShadowSize"
-				ShadowDistance="@SubtitleEditorShadowDistance"
-				TextColor="@SubtitleEditorTextColor"
-				ShadowColor="@SubtitleEditorShadowColor"
-				StartingHH="@SubtitleEditorStartingHH" 
-				StartingMM="@SubtitleEditorStartingMM" 
-				StartingSS="@SubtitleEditorStartingSS" 
-				StartingFF="@SubtitleEditorStartingFF" 
-				DurationHH="@SubtitleEditorDurationHH" 
-				DurationMM="@SubtitleEditorDurationMM" 
-				DurationSS="@SubtitleEditorDurationSS" 
-				DurationFF="@SubtitleEditorDurationFF"
-				></SubtitleEditor.Editors.SubtitleClipEditor>
-			}
-		</MudPaper>
+        <MudItem xs="12" Class="my-2">
+			<div class="row" style="height: 5vh;">
+				<h2>@CurrentTime</h2>
+			</div>
+        </MudItem>
+        <MudItem xs="12">
+            <MudPaper Class="d-flex align-center justify-center mud-width-full py-8 px-2">
+                @if (ClipUnderEditing is SubtitleClip)
+                {
+                    <SubtitleEditor.Editors.SubtitleClipEditor OnAChange="SubtitleEditorOnAChange"
+                                                               Text="@SubtitleEditorText"
+                                                               FontFamily="@SubtitleEditorFontFamily"
+                                                               TypeFaces="@TypeFaces"
+                                                               FontSize="@SubtitleEditorFontSize"
+                                                               YPosition="@SubtitleEditorYPosition"
+                                                               ShadowSize="@SubtitleEditorShadowSize"
+                                                               ShadowDistance="@SubtitleEditorShadowDistance"
+                                                               TextColor="@SubtitleEditorTextColor"
+                                                               ShadowColor="@SubtitleEditorShadowColor"
+                                                               StartingHH="@SubtitleEditorStartingHH"
+                                                               StartingMM="@SubtitleEditorStartingMM"
+                                                               StartingSS="@SubtitleEditorStartingSS"
+                                                               StartingFF="@SubtitleEditorStartingFF"
+                                                               DurationHH="@SubtitleEditorDurationHH"
+                                                               DurationMM="@SubtitleEditorDurationMM"
+                                                               DurationSS="@SubtitleEditorDurationSS"
+                                                               DurationFF="@SubtitleEditorDurationFF"></SubtitleEditor.Editors.SubtitleClipEditor>
+                }
+            </MudPaper>
+        </MudItem>
 	</MudItem>
 </MudGrid>
-
-<div class="row" style="height: 5vh;">
-<h2>@CurrentTime</h2>
-</div>
-<div style="width: 100%; height: 25vh;">
-<SectionBarWebControl 
-	@ref=sectionBarControl
-	SeekUpdate="SeekUpdate"
-	EditClip="EditClipRequest"
-	></SectionBarWebControl>
-</div>
 
 @* <TimelineContainer></TimelineContainer> *@
 @inject HttpClient HTTP
