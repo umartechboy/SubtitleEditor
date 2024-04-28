@@ -28,6 +28,7 @@
 				ShadowSize="@SubtitleEditorShadowSize"
 				ShadowDistance="@SubtitleEditorShadowDistance"
 				TextColor="@SubtitleEditorTextColor"
+				ShadowColor="@SubtitleEditorShadowColor"
 				StartingHH="@SubtitleEditorStartingHH" 
 				StartingMM="@SubtitleEditorStartingMM" 
 				StartingSS="@SubtitleEditorStartingSS" 
@@ -70,8 +71,8 @@
 				SubtitleColor = SkiaSharp.SKColors.Black,
 				ShadowColor = SkiaSharp.SKColors.Blue,
 				AspectRatio = 16 / 9.0F,
-				ShadowSize = 10,
-				ShadowDistance = 10,
+				ShadowSize = 3,
+				ShadowDistance = 4,
 				SubtitleLocation = new SkiaSharp.SKPoint(50, 50 * 9 / 16.0F)
 			};
     }
@@ -134,6 +135,7 @@
     float SubtitleEditorShadowSize { get; set; }
     float SubtitleEditorShadowDistance { get; set; }
     MudColor SubtitleEditorTextColor { get; set; }
+    MudColor SubtitleEditorShadowColor { get; set; }
     double SubtitleEditorStartingHH {get;set;}
     double SubtitleEditorStartingMM {get;set;}
     double SubtitleEditorStartingSS {get;set;}
@@ -162,6 +164,7 @@
         SubtitleEditorShadowSize = config.ShadowSize;
         SubtitleEditorShadowDistance =config.ShadowDistance;
         SubtitleEditorTextColor = SKColorToMud(config.SubtitleColor);
+        SubtitleEditorShadowColor = SKColorToMud(config.ShadowColor);
         SubtitleEditorStartingHH = (int)(ClipUnderEditing.Start / 3600);
         SubtitleEditorStartingMM = (int)(ClipUnderEditing.Start / 60);
         SubtitleEditorStartingSS = (int)(ClipUnderEditing.Start);
@@ -187,6 +190,7 @@
             config.ShadowSize = SubtitleEditor.ShadowSize;
             config.ShadowDistance = SubtitleEditor.ShadowDistance;
             config.SubtitleColor = MudColorToSK(SubtitleEditor.TextColor);
+            config.ShadowColor = MudColorToSK(SubtitleEditor.ShadowColor);
             double duration(double h, double m, double s, double f)
 			{
 				return h * 3600 + m * 60 + s + f / 30;
@@ -207,7 +211,7 @@
 			SubtitleEditorYPosition = config.SubtitleLocation.Y * config.AspectRatio;
 			SubtitleEditorShadowSize = config.ShadowSize;
 			SubtitleEditorShadowDistance = config.ShadowDistance;
-			SubtitleEditorTextColor = SKColorToMud(config.SubtitleColor);
+			SubtitleEditorShadowColor = SKColorToMud(config.ShadowColor);
 			SubtitleEditorStartingHH = SubtitleEditor.StartingHH;
 			SubtitleEditorStartingMM = SubtitleEditor.StartingMM;
 			SubtitleEditorStartingSS = SubtitleEditor.StartingSS;
