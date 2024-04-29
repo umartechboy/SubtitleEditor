@@ -1,13 +1,19 @@
 ﻿@page "/"
+@using System.Text
+@using Whisper.net
+@using Whisper.net.Ggml
 @using FFmpegBlazor
 @using MudBlazor
 @using MudBlazor.Utilities
 @using SkiaSharp.Views.Blazor
 @using SubtitleEditor.Editors
 @using SubtitleEditor.SectionDef
+
 @inject IDialogService DialogService
 @inject IJSRuntime Runtime
 @inject ISnackbar Snackbar
+@inject HttpClient HTTP
+
 <PageTitle>Home</PageTitle>
 
 <MudGrid>
@@ -126,14 +132,9 @@
                     <MudNavLink OnClick="() => TriggerDownload(renderOutputFile)">Download rendered file</MudNavLink>
                 }
             </MudNavGroup>
-            
-            <MudNavLink Href="/servers">Servers</MudNavLink>
-            <MudNavLink Href="/billing" Disabled="true">Billing</MudNavLink>
-            <MudNavGroup Title="Settings" Expanded="true">
-                <MudNavLink Href="/users">Users</MudNavLink>
-                <MudNavLink Href="/security">Security</MudNavLink>
+            <MudNavGroup Title="Lyrics" Expanded="true">
+                <MudNavLink OnClick="WhisperTest">Extract Lyrics</MudNavLink>
             </MudNavGroup>
-            <MudNavLink Href="/about">About</MudNavLink>
         </MudNavMenu>
     </MudNavMenu>
 </MudDrawer>
@@ -355,6 +356,7 @@
                 await VideoClipEditor.FFMpeg.Load(); //parameter false means not to trigger events in ffmpeg Clase instance
 
             }
+            await GetFFMpeg();
             renderProgressText = "Creating Frames";
             renderAbort = false;
 
@@ -389,7 +391,6 @@
             renderProgressText = "Encoding video";
             StateHasChanged();
             var fName = "output.mp4";
-            await GetFFMpeg();
             await VideoClipEditor.FFMpeg.Run("-framerate", "30", "-r", "30", "-i", "FR%04d.jpg", "-c:v", "libx264", "-crf", "18", "-preset", renderQuality, fName);
             renderOutputFile = fName;
 
@@ -398,6 +399,91 @@
             Snackbar.Add("Video compiled successfully");
         });
     }
+    //Whisper
+    bool firstRender = true;
+    WhisperFactory whisperFactory;
+    WhisperProcessor whisperProcessor;
+    string txtResult;
+    async Task WhisperTest()
+    {
+        Console.WriteLine("Whisper test started");
+        if (!firstRender)
+        {
+            return;
+        }
+
+        Console.WriteLine("Downloading Ggml");
+        if (whisperFactory == null)
+        {
+            using var memoryStream = new MemoryStream();
+            var model = await WhisperGgmlDownloader.GetGgmlModelAsync(GgmlType.Tiny);
+            await model.CopyToAsync(memoryStream);
+            whisperFactory = WhisperFactory.FromBuffer(memoryStream.ToArray());
+        }
+
+        Console.WriteLine("Converting MP3");
+        var sb = new StringBuilder();
+        var mp3 = await HTTP.GetByteArrayAsync("whisper/karma.mp3");
+
+        if (FFmpegFactory.Runtime == null)
+        {
+            await FFmpegFactory.Init(Runtime);
+            //create an instance
+            VideoClipEditor.FFMpeg = FFmpegFactory.CreateFFmpeg();
+            //download all dependencies from cdn
+            await VideoClipEditor.FFMpeg.Load(); //parameter false means not to trigger events in ffmpeg Clase instance
+
+        }
+        await GetFFMpeg();
+
+        VideoClipEditor.FFMpeg.WriteFile("input.mp3", mp3);
+        await VideoClipEditor.FFMpeg.Run("-i", "input.mp3","-ar", "16000", "output.wav");
+        var wave = await VideoClipEditor.FFMpeg.ReadFile("output.wav");
+
+        Console.WriteLine("Begin whisper");
+        if (whisperProcessor == null)
+        {
+            whisperProcessor = whisperFactory.CreateBuilder()
+            .WithPrintProgress()
+            .WithPrintResults()
+            .WithLanguage("en")
+            .Build();
+            StateHasChanged();
+        }
+        await foreach (var result in whisperProcessor!.ProcessAsync(new MemoryStream(wave)))
+        {
+            // Sample
+            // "00:03:03->00:03:04:  Cover the bitch.
+
+            var l = $"{result.Start}->{result.End}: {result.Text}";
+            Console.WriteLine(l);
+            sb.AppendLine(l);
+            txtResult = sb.ToString();
+            StateHasChanged();
+        }
+        Console.WriteLine("All done");
+        // var ggml = await HTTP.GetByteArrayAsync("whisper/ggml-base.bin");
+
+
+        // void OnSegmentEventHandler(SegmentData e)
+        // {
+        //     Console.WriteLine($"CSSS {e.Start} ==> {e.End} : {e.Text}");
+        // }
+
+        // using (var whisperFactory = WhisperFactory.FromBuffer(ggml))
+        // {
+        //     using var processor = whisperFactory.CreateBuilder()
+        //         .WithSegmentEventHandler(OnSegmentEventHandler)
+        //         .WithTranslate()
+        //         .WithLanguage("auto")
+        //         .WithPrintTimestamps()
+        //         .Build();
+
+        //     using var fileStream = await HTTP.GetStreamAsync("whisper/karma.mp3");
+        //     processor.Process(fileStream);
+        // }
+    }
+
     //Common Clip Editing
     Clip ClipUnderEditing;
 
