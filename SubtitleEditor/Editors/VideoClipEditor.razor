@@ -149,10 +149,12 @@
             progressDescription = "Downloading FFMPEG...";
             FFmpegFactory.Logger += l =>
             {
+                if (!converting)
+                    return;
                 FFLog.AppendLine(l.Message);
-                if (l.Message.StartsWith("Duration:"))
+                if (l.Message.Trim().StartsWith("Duration:"))
                 {
-                    var d = l.Message.Substring(10).Split(',')[0];
+                    var d = l.Message.Trim().Substring(10).Split(',')[0];
                     var parts = d.Split(':', '.').Select(p => int.Parse(p)).ToArray();
                     var h = parts[0];
                     var m = parts[1];
@@ -176,6 +178,8 @@
     }
     void ProgressChange(Progress m)
     {
+        if (!converting)
+            return;
         conversionProgress = (int)(m.Ratio * 100.0f);
         if (conversionProgress < 0)
             conversionProgress = 0;

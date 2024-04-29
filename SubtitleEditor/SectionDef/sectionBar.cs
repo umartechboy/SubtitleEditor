@@ -114,10 +114,14 @@ namespace SubtitleEditor.SectionDef
         }
         public void ResetMaxTime()
         {
-            foreach(var layer in Layers)
+            foreach (var layer in Layers)
                 foreach (var clip in layer)
                     if (clip.End > Maximum)
+                    {
                         Maximum = clip.End;
+                        ZoomEnd = clip.End;
+                        Invalidate();
+                    }
             
         }
 

@@ -116,13 +116,14 @@
 	</MudItem>
 </MudGrid>
 
+@* Main Menu *@
 <MudDrawer @bind-Open="@menuOpen" Anchor="Anchor.End" Elevation="1" Variant="@DrawerVariant.Temporary">
     <MudDrawerHeader>
-        <MudText Typo="Typo.h6">My App</MudText>
+        <MudText Typo="Typo.h6">The Lyrics App</MudText>
     </MudDrawerHeader>
     <MudNavMenu>
         <MudNavMenu>
-            <MudText Typo="Typo.h6" Class="px-4">Caption Maker</MudText>
+            <MudText Typo="Typo.h6" Class="px-4">Options</MudText>
             <MudText Typo="Typo.body2" Class="px-4 mud-text-secondary">Choose an option</MudText>
             <MudDivider Class="my-2" />
             <MudNavGroup Title="Settings" Expanded="true">
@@ -133,12 +134,13 @@
                 }
             </MudNavGroup>
             <MudNavGroup Title="Lyrics" Expanded="true">
-                <MudNavLink OnClick="WhisperTest">Extract Lyrics</MudNavLink>
+                <MudNavLink OnClick="() => whisperMenuOpen = true">Extract Lyrics</MudNavLink>
             </MudNavGroup>
         </MudNavMenu>
     </MudNavMenu>
 </MudDrawer>
 
+@* Render Menu *@
 <MudDialog @bind-IsVisible="renderMenuOpen" Options="new DialogOptions() { FullWidth = true }">
     <TitleContent>
         <MudText Typo="Typo.h6">
@@ -176,37 +178,82 @@
         <MudButton Variant="Variant.Filled" Color="Color.Primary" Class="px-10" OnClick="@RenderAll">Render</MudButton>
     </DialogActions>
 </MudDialog>
-@* RenderProgress Dialog *@
-<MudDialog @bind-IsVisible="renderProgressOpen" Options="new DialogOptions() { FullWidth = true }">
+
+@* Whisper Menu *@
+<MudDialog @bind-IsVisible="whisperMenuOpen" Options="new DialogOptions() { FullWidth = true }">
     <TitleContent>
         <MudText Typo="Typo.h6">
-            <MudIcon Icon="@Icons.Material.Filled.AutoFixHigh" Class="mr-3" /> Creating your video
+            <MudIcon Icon="@Icons.Material.Filled.AutoFixHigh" Class="mr-3" /> Extract Lyrics
         </MudText>
     </TitleContent>
     <DialogContent>
 
         <MudGrid>
-            <MudText Typo="Typo.body1">@renderProgressText</MudText> 
-                @if (renderProgress >= 0)
+            <MudAppBar Color="Color.Transparent" Fixed="false" Elevation="0" Class="py-4">
+                <MudText Typo="Typo.subtitle2">GPML Model</MudText>
+                <MudSpacer />
+                <MudSelect @bind-Value="@modelToUse" Variant="Variant.Outlined">
+                    <MudSelectItem Value="GgmlType.Tiny">Faster, least accurate</MudSelectItem>
+                    <MudSelectItem Value="GgmlType.Base">Balanced</MudSelectItem>
+                    <MudSelectItem Value="GgmlType.Small">Slower, more accurate</MudSelectItem>
+                </MudSelect>
+            </MudAppBar>
+        </MudGrid>
+
+    </DialogContent>
+    <DialogActions>
+        <MudButton Variant="Variant.Filled" Color="Color.Transparent" Class="px-10" OnClick="()=> whisperMenuOpen = false">Close</MudButton>        
+        
+        <MudFileUpload T="IBrowserFile" Accept=".mp3, .wav, .ogg" FilesChanged="(Func<IBrowserFile, Task>)UploadAudio" MaximumFileCount="100">
+            <ButtonTemplate>
+                <MudButton HtmlTag="label"
+                           Variant="Variant.Filled"
+                           Color="Color.Primary"
+                           for="@context.Id">
+                    Upload Audio
+                    <MudIcon Icon="@Icons.Material.Filled.FileUpload" Title="Upload Audio" />
+                </MudButton>
+            </ButtonTemplate>
+        </MudFileUpload>
+
+    </DialogActions>
+</MudDialog>
+
+@* Process Progress Dialog *@
+<MudDialog @bind-IsVisible="processProgressOpen" Options="new DialogOptions() { FullWidth = true }">
+    <TitleContent>
+        <MudText Typo="Typo.h6">
+            <MudIcon Icon="@Icons.Material.Filled.AutoFixHigh" Class="mr-3" />@processProgressTitle
+        </MudText>
+    </TitleContent>
+    <DialogContent>
+
+        <MudGrid>
+            <MudText Typo="Typo.body1">@processProgressText</MudText> 
+                @if (processProgress >= 0)
             {
                 <MudProgressLinear Color
                 ="Color.Error"  Indeterminate
-                ="renderProgress == 0 || renderProgress >= 100" Value
-                ="@renderProgress" Class
+                ="processProgress == 0 || processProgress >= 100" Value
+                ="@processProgress" Class
                 ="my-7" />
             }
         </MudGrid>
 
     </DialogContent>
 		<DialogActions>
-		@if (renderOutputFile != "")
-		{
-			<MudButton Variant="Variant.Filled" Color="Color.Success" Class="px-10" OnClick="()=> TriggerDownload(renderOutputFile)">Download</MudButton>
-		}
-        <MudButton Variant="Variant.Filled" Color="Color.Transparent" Class="px-10" OnClick="()=> renderAbort = true">Abort</MudButton>
+            @* Make sure the button is only active in render part *@
+        @if (processIsRender)
+        {
+            @if (renderOutputFile != "")
+            {
+                <MudButton Variant="Variant.Filled" Color="Color.Success" Class="px-10" OnClick="()=> TriggerDownload(renderOutputFile)">Download</MudButton>
+            }
+            <MudButton Variant="Variant.Filled" Color="Color.Transparent" Class="px-10" OnClick="()=> renderAbort = true">Abort</MudButton>
+        }
     </DialogActions>
 </MudDialog>
-@* <TimelineContainer></TimelineContainer> *@
+
 @inject HttpClient HTTP
 @code{
     SectionBarWebControl sectionBarControl { get; set; }
@@ -244,15 +291,18 @@
         SubtitleEditorFontFamily = config.SubTitlesFont.Typeface.FamilyName;
     }
 
-    bool renderMenuOpen;
     bool menuOpen;
-    bool renderProgressOpen;
-    double renderProgress = 0;
     int renderRes = 1920;
     bool renderAbort = false;
     string renderQuality = "medium";
-    string renderProgressText = "Working";
     string renderOutputFile = "";
+    bool renderMenuOpen;
+
+    bool processIsRender = true;
+    bool processProgressOpen;
+    double processProgress = 0;
+    string processProgressText = "Working";
+    string processProgressTitle = "";
     Dictionary<string, string> renderQualityOptions = new Dictionary<string, string>
         {
     { "ultrafast","Fastest (Lowest quality)"},
@@ -302,36 +352,39 @@
         e.Surface.Canvas.Scale(1 / scale, 1 / scale);
         canvas.Translate(-(e.Info.Width - width) / 2, -(e.Info.Height - height) / 2);
     }
+
+    // Common Helpers
     bool hasInitFFMPEG = false;
     System.Text.StringBuilder FFLog = new System.Text.StringBuilder();
     async Task GetFFMpeg()
     {
+        FFLog.Clear();
+        if (FFmpegFactory.Runtime == null)
+        {
+            Console.WriteLine("Get FFMpeg");
+            await FFmpegFactory.Init(Runtime);
+            processProgressText = "Downloading FFmpeg";
+            StateHasChanged();
+            //create an instance
+            VideoClipEditor.FFMpeg = FFmpegFactory.CreateFFmpeg();
+            //download all dependencies from cdn
+            await VideoClipEditor.FFMpeg.Load(); //parameter false means not to trigger events in ffmpeg Clase instance
+
+        }
         //if (FFmpegFactory.Runtime == null)
         // In cas renderer has already called it.
         if (!hasInitFFMPEG)
         {
             hasInitFFMPEG = true;
-            renderProgressText = "Downloading FFMPEG...";
-            FFmpegFactory.Logger += l =>
-            {
-                FFLog.AppendLine(l.Message);
-                if (l.Message.Trim().StartsWith("frame="))
-                {
-                    var fNum = int.Parse(l.Message.Split("fps")[0].Trim().Substring(6).Trim());
-                    renderProgressText = "Extracted " + fNum + " frames";
-                    var total = sectionBarControl.sectionBar.Maximum * 30;
-                    renderProgressText = "Encoded frame " + fNum + " of " + total;
-                    renderProgress = fNum / (double)total * 100;
-                    StateHasChanged();
-                }
-
-                Console.WriteLine("ffmpeg: " + l.Message);
-            };
+            processProgressText = "Downloading FFMPEG...";
+            StateHasChanged();
             //initialize Library
             await FFmpegFactory.Init(Runtime);
         }
 
     }
+
+    // Render Output
     async Task TriggerDownload(string fName)
     {
         var outBuffer = await VideoClipEditor.FFMpeg.ReadFile(fName);
@@ -339,149 +392,182 @@
     }
     async Task RenderAll()
     {
-        await Task.Run(async () =>
+        processIsRender = true;
+        processProgressTitle = "Creating your video";
+        // Prepare UI
+        renderMenuOpen = false;
+        processProgressOpen = true;
+        processProgress = 0;
+        StateHasChanged();
+        await GetFFMpeg();
+        void durationExtracter(Logs l)
         {
-            // Prepare UI
-            renderMenuOpen = false;
-            renderProgressOpen = true;
-            renderProgress = 0;
-            renderProgressText = "Downloading FFPEG";
-            StateHasChanged();
-            if (FFmpegFactory.Runtime == null)
+            FFLog.AppendLine(l.Message);
+            if (l.Message.Trim().StartsWith("frame="))
             {
-                await FFmpegFactory.Init(Runtime);
-                //create an instance
-                VideoClipEditor.FFMpeg = FFmpegFactory.CreateFFmpeg();
-                //download all dependencies from cdn
-                await VideoClipEditor.FFMpeg.Load(); //parameter false means not to trigger events in ffmpeg Clase instance
-
-            }
-            await GetFFMpeg();
-            renderProgressText = "Creating Frames";
-            renderAbort = false;
-
-            //Render Frames
-            config.TargetSize = new SkiaSharp.SKSize() { Width = renderRes, Height = renderRes / config.AspectRatio };
-            for (int fi = 0; fi < sectionBarControl.sectionBar.Maximum * 30; fi++)
-            {
-                var t = fi / 30.0D;
-                using (var skBitmap = new SkiaSharp.SKBitmap((int)config.TargetSize.Width, (int)config.TargetSize.Height))
-                {
-                    using(var ms = new MemoryStream())
-                    {
-
-                        var canvas = new SkiaSharp.SKCanvas(skBitmap);
-                        var s = skBitmap.Width / 100;
-                        canvas.Scale(s, s);
-                        sectionBarControl.RenderCurrentFrameAtT(canvas, t, config);
-                        skBitmap.Encode(ms, SkiaSharp.SKEncodedImageFormat.Jpeg, 100);
-                        var buffer = ms.ToArray();
-                        var jpgName = "FR" + (fi + 1).ToString().PadLeft(4, '0') + ".jpg";
-                        VideoClipEditor.FFMpeg.WriteFile(jpgName, buffer);
-                        //var readOut = await VideoClipEditor.FFMpeg.ReadFile(jpgName);
-                        //VideoClipEditor.FFMpeg.WriteFile("FR%04d.jpg", buffer);
-                        renderProgress = t / sectionBarControl.sectionBar.Maximum * 100;
-                        await Task.Delay(1);
-                    }
-                }
-                GC.Collect();
+                var fNum = int.Parse(l.Message.Split("fps")[0].Trim().Substring(6).Trim());
+                processProgressText = "Extracted " + fNum + " frames";
+                var total = sectionBarControl.sectionBar.Maximum * 30;
+                processProgressText = "Encoded frame " + fNum + " of " + total;
+                processProgress = fNum / (double)total * 100;
                 StateHasChanged();
             }
-            renderProgress = 0;
-            renderProgressText = "Encoding video";
-            StateHasChanged();
-            var fName = "output.mp4";
-            await VideoClipEditor.FFMpeg.Run("-framerate", "30", "-r", "30", "-i", "FR%04d.jpg", "-c:v", "libx264", "-crf", "18", "-preset", renderQuality, fName);
-            renderOutputFile = fName;
 
-            renderProgressText = "Your file is ready to be downloaded";
-            renderProgress = -1;
-            Snackbar.Add("Video compiled successfully");
-        });
+            Console.WriteLine("ffmpeg: " + l.Message);
+        };
+        FFmpegFactory.Logger += durationExtracter;
+
+        processProgressText = "Creating Frames";
+        renderAbort = false;
+
+        //Render Frames
+        config.TargetSize = new SkiaSharp.SKSize() { Width = renderRes, Height = renderRes / config.AspectRatio };
+        for (int fi = 0; fi < sectionBarControl.sectionBar.Maximum * 30; fi++)
+        {
+            var t = fi / 30.0D;
+            using (var skBitmap = new SkiaSharp.SKBitmap((int)config.TargetSize.Width, (int)config.TargetSize.Height))
+            {
+                using (var ms = new MemoryStream())
+                {
+
+                    var canvas = new SkiaSharp.SKCanvas(skBitmap);
+                    var s = skBitmap.Width / 100;
+                    canvas.Scale(s, s);
+                    sectionBarControl.RenderCurrentFrameAtT(canvas, t, config);
+                    skBitmap.Encode(ms, SkiaSharp.SKEncodedImageFormat.Jpeg, 100);
+                    var buffer = ms.ToArray();
+                    var jpgName = "FR" + (fi + 1).ToString().PadLeft(4, '0') + ".jpg";
+                    VideoClipEditor.FFMpeg.WriteFile(jpgName, buffer);
+                    //var readOut = await VideoClipEditor.FFMpeg.ReadFile(jpgName);
+                    //VideoClipEditor.FFMpeg.WriteFile("FR%04d.jpg", buffer);
+                    processProgress = t / sectionBarControl.sectionBar.Maximum * 100;
+                    await Task.Delay(1);
+                }
+            }
+            GC.Collect();
+            StateHasChanged();
+        }
+        processProgress = 0;
+        processProgressText = "Encoding video";
+        StateHasChanged();
+        var fName = "output.mp4";
+        await VideoClipEditor.FFMpeg.Run("-framerate", "30", "-r", "30", "-i", "FR%04d.jpg", "-c:v", "libx264", "-crf", "18", "-preset", renderQuality, fName);
+        renderOutputFile = fName;
+
+        FFmpegFactory.Logger -= durationExtracter;
+        processProgressText = "Your file is ready to be downloaded";
+        processProgress = -1;
+        Snackbar.Add("Video compiled successfully");
     }
+
     //Whisper
     bool firstRender = true;
-    WhisperFactory whisperFactory;
-    WhisperProcessor whisperProcessor;
-    string txtResult;
-    async Task WhisperTest()
+    GgmlType modelToUse = GgmlType.Tiny;
+    bool whisperMenuOpen = false;
+    Dictionary<GgmlType, WhisperFactory> whisperFactory = new Dictionary<GgmlType, WhisperFactory>();
+
+    Dictionary<GgmlType, WhisperProcessor> whisperProcessor = new Dictionary<GgmlType, WhisperProcessor>();
+
+    protected async Task UploadAudio(IBrowserFile file)
     {
-        Console.WriteLine("Whisper test started");
-        if (!firstRender)
-        {
-            return;
-        }
+        processProgressTitle = "Extract Lyrics";
+        var stream = file.OpenReadStream(10000000);
+        var mp3 = new byte[file.Size];
 
-        Console.WriteLine("Downloading Ggml");
-        if (whisperFactory == null)
-        {
-            using var memoryStream = new MemoryStream();
-            var model = await WhisperGgmlDownloader.GetGgmlModelAsync(GgmlType.Tiny);
-            await model.CopyToAsync(memoryStream);
-            whisperFactory = WhisperFactory.FromBuffer(memoryStream.ToArray());
-        }
+        //read all bytes
+        await stream.ReadAsync(mp3);
 
-        Console.WriteLine("Converting MP3");
-        var sb = new StringBuilder();
-        var mp3 = await HTTP.GetByteArrayAsync("whisper/karma.mp3");
+        whisperMenuOpen = false;
+        processProgressOpen = true;
+        StateHasChanged();
+        processIsRender = false;
 
-        if (FFmpegFactory.Runtime == null)
-        {
-            await FFmpegFactory.Init(Runtime);
-            //create an instance
-            VideoClipEditor.FFMpeg = FFmpegFactory.CreateFFmpeg();
-            //download all dependencies from cdn
-            await VideoClipEditor.FFMpeg.Load(); //parameter false means not to trigger events in ffmpeg Clase instance
-
-        }
         await GetFFMpeg();
+        double duration = 0;
+        void durationExtracter(Logs l)
+        {
+            FFLog.AppendLine(l.Message);
+            if (l.Message.Trim().StartsWith("Duration:"))
+            {
+                var d = l.Message.Trim().Substring(10).Split(',')[0];
+                var parts = d.Split(':', '.').Select(p => int.Parse(p)).ToArray();
+                var h = parts[0];
+                var m = parts[1];
+                var s = parts[2];
+                var f = parts[3];
+                duration = h * 3600 + m * 60 + s;
+            }
+
+            Console.WriteLine("ffmpeg: " + l.Message);
+        };
+        void progressUpdate(Progress p){
+            processProgress = p.Ratio * 100;
+            processProgressText = Math.Round(processProgress).ToString() + "% converted";
+            StateHasChanged();
+        }
+        FFmpegFactory.Logger += durationExtracter;
+        FFmpegFactory.Progress += progressUpdate;
+        processProgressText = "Converting to WAVE format";
+        StateHasChanged();
 
         VideoClipEditor.FFMpeg.WriteFile("input.mp3", mp3);
         await VideoClipEditor.FFMpeg.Run("-i", "input.mp3","-ar", "16000", "output.wav");
+        FFmpegFactory.Logger -= durationExtracter;
+        FFmpegFactory.Progress -= progressUpdate;
+
         var wave = await VideoClipEditor.FFMpeg.ReadFile("output.wav");
 
-        Console.WriteLine("Begin whisper");
-        if (whisperProcessor == null)
+        Console.WriteLine("Downloading Gpml");
+        if (!whisperFactory.ContainsKey(modelToUse))
         {
-            whisperProcessor = whisperFactory.CreateBuilder()
+            processProgressText = "Downloading GPML model";
+            using var memoryStream = new MemoryStream();
+            var model = await WhisperGgmlDownloader.GetGgmlModelAsync(GgmlType.Tiny, QuantizationType.Q5_1);
+            await model.CopyToAsync(memoryStream);
+            //await model.CopyToAsync(memoryStream);
+            whisperFactory[modelToUse] = WhisperFactory.FromBuffer(memoryStream.ToArray());
+        }
+        processProgressText = "Extracting Lyrics";
+        StateHasChanged();
+        processProgress = 0;
+        Console.WriteLine("Begin whisper");
+        if (!whisperProcessor.ContainsKey(modelToUse))
+        {
+            whisperProcessor[modelToUse] = whisperFactory[modelToUse].CreateBuilder()
             .WithPrintProgress()
             .WithPrintResults()
             .WithLanguage("en")
             .Build();
             StateHasChanged();
         }
-        await foreach (var result in whisperProcessor!.ProcessAsync(new MemoryStream(wave)))
-        {
-            // Sample
-            // "00:03:03->00:03:04:  Cover the bitch.
 
-            var l = $"{result.Start}->{result.End}: {result.Text}";
-            Console.WriteLine(l);
-            sb.AppendLine(l);
-            txtResult = sb.ToString();
+        sectionBarControl.sectionBar.Layers[2].Clear();
+        int totalWords = 0;
+        int totalSubs = 0;
+        double confidance = 0;
+        await foreach (var result in whisperProcessor[modelToUse]!.ProcessAsync(new MemoryStream(wave)))
+        {
+            Console.WriteLine($"{result.Start}->{result.End}: {result.Text}");
+            totalWords += result.Text.Split(' ').Length;
+            // Add a new clip for this
+            var subClip = new SubtitleClip(result.Start.TotalSeconds, result.End.TotalSeconds, result.Text);
+            sectionBarControl.sectionBar.Layers[2].Add(subClip);
+            sectionBarControl.ResetMaxTime();
+
+            processProgressText = (++totalSubs) + ": " + result.Text + " [" + result.Probability + "]";
+            confidance += result.Probability;
+            sectionBarControl.Invalidate();
+            processProgress = (result.End.TotalSeconds / duration) * 100;
             StateHasChanged();
         }
-        Console.WriteLine("All done");
-        // var ggml = await HTTP.GetByteArrayAsync("whisper/ggml-base.bin");
-
-
-        // void OnSegmentEventHandler(SegmentData e)
-        // {
-        //     Console.WriteLine($"CSSS {e.Start} ==> {e.End} : {e.Text}");
-        // }
-
-        // using (var whisperFactory = WhisperFactory.FromBuffer(ggml))
-        // {
-        //     using var processor = whisperFactory.CreateBuilder()
-        //         .WithSegmentEventHandler(OnSegmentEventHandler)
-        //         .WithTranslate()
-        //         .WithLanguage("auto")
-        //         .WithPrintTimestamps()
-        //         .Build();
-
-        //     using var fileStream = await HTTP.GetStreamAsync("whisper/karma.mp3");
-        //     processor.Process(fileStream);
-        // }
+        confidance /= totalSubs;
+        processProgressText = "All done!";
+        processProgress = -1;
+        sectionBarControl.sectionBar.Layers[4].Clear();
+        sectionBarControl.sectionBar.Layers[4].Add(new AudioClip(0, duration, mp3, file.Name));
+        sectionBarControl.sectionBar.ResetMaxTime();
+        Snackbar.Add($"Audio was processed successfully and lyrics where added to the timeline. Total {totalSubs} lyrics containing {totalWords} words exracted with an overall confidance of {confidance}.");
+        StateHasChanged();
     }
 
     //Common Clip Editing

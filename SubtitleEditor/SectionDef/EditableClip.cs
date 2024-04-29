@@ -8,8 +8,10 @@ namespace SubtitleEditor.SectionDef
 {
     public class AudioClip : Clip
     {
-        public AudioClip(double start, double end, string source) : base(start, end, source)
+        public byte[] Data { get; private set; }
+        public AudioClip(double start, double end, byte[] data, string fname) : base(start, end, fname)
         {
+            Data = data;
         }
     }
     public class VideoClip : Clip
@@ -189,7 +191,7 @@ namespace SubtitleEditor.SectionDef
         public SKColor SubtitleColor { get; set; }
 		public SKColor ShadowColor { get; set; }
 
-        public float SubtitleOverlap { get; set; } = 1;
+        public float SubtitleOverlap { get; set; } = 0.2F;
         public SKPoint SubtitleLocation { get; set; }
     }
 }
