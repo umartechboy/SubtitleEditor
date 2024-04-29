@@ -154,6 +154,30 @@ namespace SubtitleEditor.SectionDef
                 }, config);
             }
         }
+        //public class PNGFrame
+        //{
+        //    SKBitmap data;
+        //    public SKBitmap Image
+        //    {
+        //        get
+        //        {
+        //            if (data == null)
+        //                try
+        //                {
+        //                    SKBitmap.Decode()
+        //                }
+        //                catch { }
+        //            return data;
+        //        }
+        //    }
+        //    string file = "";
+        //    byte[] fileData;
+        //    public PNGFrame(FFmpegBlazor.FFMPEG ffmpeg, byte[] dataBuffer)
+        //    {
+        //        this.file = fileName;
+        //        dataBuffer =
+        //    }
+        //}
     }
     public class RenderConfig
     {

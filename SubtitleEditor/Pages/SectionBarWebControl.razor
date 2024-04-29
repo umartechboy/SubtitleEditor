@@ -33,7 +33,7 @@
 	public EventCallback RenderPreview { get; set; }
 
 	protected SKGLView skView = null;
-	protected SectionBar sectionBar;
+	public SectionBar sectionBar;
 	protected string Cursor = "auto";
 
 	SKPoint lastMove;
@@ -47,15 +47,16 @@
 		};
 		sectionBar.OnRequestToRenderPreview += async (s, e) => await RenderPreview.InvokeAsync();
 		sectionBar.OnClipEditRequest += async (s, e) => await EditClip.InvokeAsync(e.Clip);
-		sectionBar.Layers[0].Add(new SubtitleClip(10, 30, "Hello, world"));
-		sectionBar.Layers[0].Add(new SubtitleClip(30, 40, "ABCD"));
-		sectionBar.Layers[1].Add(new SubtitleClip(25, 35, "ABCD"));
-		sectionBar.Layers[2].Add(new PhotoClip(15, 50));
-		sectionBar.Layers[3].Add(new VideoClip(0, 120));
+		sectionBar.Layers[0].Add(new SubtitleClip(1, 5, "Hello, world"));
+		sectionBar.Layers[0].Add(new SubtitleClip(5, 10, "ABCD"));
+		sectionBar.Layers[1].Add(new SubtitleClip(3, 10, "ABCD"));
+		sectionBar.Layers[2].Add(new PhotoClip(5, 10));
+		sectionBar.Layers[3].Add(new VideoClip(0, 10));
+		sectionBar.Layers[4].Add(new PhotoClip(0, 10));
 		sectionBar.DiableDefaultEmptySectionStrip = false;
 		sectionBar.DiableDefaultSectionGroupStrip = false;
 		sectionBar.DiableDefaultSectionStrip = false;
-		sectionBar.Maximum = 120D;
+		sectionBar.Maximum = 10D;
 		sectionBar.Minimum = 0D;
 		sectionBar.MultiSelection = false;
 		sectionBar.SeekPosition = 0D;
@@ -124,6 +125,10 @@
 	public void RenderCurrentFrame(SKCanvas canvas, RenderConfig config)
 	{
 		sectionBar.RenderFrame(SeekPosition, canvas, config);
+	}
+	public void RenderCurrentFrameAtT(SKCanvas canvas, double t, RenderConfig config)
+	{
+		sectionBar.RenderFrame(t, canvas, config);
 	}
 	public void Invalidate()
 	{

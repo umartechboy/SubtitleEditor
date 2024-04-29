@@ -1,8 +1,13 @@
 ﻿@page "/"
+@using FFmpegBlazor
 @using MudBlazor
 @using MudBlazor.Utilities
 @using SkiaSharp.Views.Blazor
+@using SubtitleEditor.Editors
 @using SubtitleEditor.SectionDef
+@inject IDialogService DialogService
+@inject IJSRuntime Runtime
+@inject ISnackbar Snackbar
 <PageTitle>Home</PageTitle>
 
 <MudGrid>
@@ -26,14 +31,14 @@
             </MudPaper>
         </MudItem>
 	</MudItem>
-    
-	<MudItem xs="4">
-        <MudItem xs="12" Class="my-2">
-			<div class="row" style="height: 5vh;">
-				<h2>@CurrentTime</h2>
-			</div>
-        </MudItem>
-        <MudItem xs="12">
+
+    <MudItem md="4">
+        <MudAppBar Color="Color.Transparent" Fixed="false" Elevation="0">
+            <MudText Typo="Typo.h3">@CurrentTime</MudText>
+            <MudSpacer />
+            <MudIconButton Icon="@Icons.Material.Outlined.MenuOpen" Color="Color.Inherit" OnClick="() => menuOpen = true"/>
+        </MudAppBar>
+        <MudItem md="12">
             <MudPaper Class="d-flex align-center justify-center mud-width-full py-8 px-2">
                 @if (ClipUnderEditing is SubtitleClip)
                 {
@@ -96,11 +101,110 @@
                     DurationSS="@ClipEditorDurationSS"
                     DurationFF="@ClipEditorDurationFF"></SubtitleEditor.Editors.VideoClipEditor>
                 }
+                @if(ClipUnderEditing == null)
+                {
+                    <MudText Typo="Typo.body2" Align="Align.Center">No clips are selected</MudText>
+                }
             </MudPaper>
         </MudItem>
 	</MudItem>
 </MudGrid>
 
+<MudDrawer @bind-Open="@menuOpen" Anchor="Anchor.End" Elevation="1" Variant="@DrawerVariant.Temporary">
+    <MudDrawerHeader>
+        <MudText Typo="Typo.h6">My App</MudText>
+    </MudDrawerHeader>
+    <MudNavMenu>
+        <MudNavMenu>
+            <MudText Typo="Typo.h6" Class="px-4">Caption Maker</MudText>
+            <MudText Typo="Typo.body2" Class="px-4 mud-text-secondary">Choose an option</MudText>
+            <MudDivider Class="my-2" />
+            <MudNavGroup Title="Settings" Expanded="true">
+                <MudNavLink OnClick="() => {renderMenuOpen = true; menuOpen = false; }">Render</MudNavLink>
+                @if (renderOutputFile != "")
+                {
+                    <MudNavLink OnClick="() => TriggerDownload(renderOutputFile)">Download rendered file</MudNavLink>
+                }
+            </MudNavGroup>
+            
+            <MudNavLink Href="/servers">Servers</MudNavLink>
+            <MudNavLink Href="/billing" Disabled="true">Billing</MudNavLink>
+            <MudNavGroup Title="Settings" Expanded="true">
+                <MudNavLink Href="/users">Users</MudNavLink>
+                <MudNavLink Href="/security">Security</MudNavLink>
+            </MudNavGroup>
+            <MudNavLink Href="/about">About</MudNavLink>
+        </MudNavMenu>
+    </MudNavMenu>
+</MudDrawer>
+
+<MudDialog @bind-IsVisible="renderMenuOpen" Options="new DialogOptions() { FullWidth = true }">
+    <TitleContent>
+        <MudText Typo="Typo.h6">
+            <MudIcon Icon="@Icons.Material.Filled.AutoFixHigh" Class="mr-3" /> Render
+        </MudText>
+    </TitleContent>
+    <DialogContent>
+        
+        <MudGrid>
+            <MudItem md="6">
+                <MudText Typo="Typo.body1">Resolution</MudText>
+            </MudItem>
+            <MudItem md="6">
+                <MudSelect @bind-Value="@renderRes" Variant="Variant.Outlined">
+                    <MudSelectItem Value="1920">FHD 1920x1080</MudSelectItem>
+                    <MudSelectItem Value="1080">HD 1080x720</MudSelectItem>
+                </MudSelect>
+            </MudItem>
+            <MudItem md="6">
+                <MudText Typo="Typo.body1">Compression</MudText>
+            </MudItem>
+            <MudItem md="6">
+                <MudSelect @bind-Value="@renderQuality" Variant="Variant.Outlined">
+                    @foreach (var option in renderQualityOptions)
+                    {
+                        <MudSelectItem Value="@option.Key">@option.Value</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+        </MudGrid>
+
+    </DialogContent>
+    <DialogActions>
+        <MudButton Variant="Variant.Filled" Color="Color.Transparent" Class="px-10" OnClick="()=>renderMenuOpen = false">Close</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" Class="px-10" OnClick="@RenderAll">Render</MudButton>
+    </DialogActions>
+</MudDialog>
+@* RenderProgress Dialog *@
+<MudDialog @bind-IsVisible="renderProgressOpen" Options="new DialogOptions() { FullWidth = true }">
+    <TitleContent>
+        <MudText Typo="Typo.h6">
+            <MudIcon Icon="@Icons.Material.Filled.AutoFixHigh" Class="mr-3" /> Creating your video
+        </MudText>
+    </TitleContent>
+    <DialogContent>
+
+        <MudGrid>
+            <MudText Typo="Typo.body1">@renderProgressText</MudText> 
+                @if (renderProgress >= 0)
+            {
+                <MudProgressLinear Color
+                ="Color.Error"  Indeterminate
+                ="renderProgress == 0 || renderProgress >= 100" Value
+                ="@renderProgress" Class
+                ="my-7" />
+            }
+        </MudGrid>
+
+    </DialogContent>
+		<DialogActions>
+		@if (renderOutputFile != "")
+		{
+			<MudButton Variant="Variant.Filled" Color="Color.Success" Class="px-10" OnClick="()=> TriggerDownload(renderOutputFile)">Download</MudButton>
+		}
+        <MudButton Variant="Variant.Filled" Color="Color.Transparent" Class="px-10" OnClick="()=> renderAbort = true">Abort</MudButton>
+    </DialogActions>
+</MudDialog>
 @* <TimelineContainer></TimelineContainer> *@
 @inject HttpClient HTTP
 @code{
@@ -138,6 +242,27 @@
         config.SubTitlesFont = new SkiaSharp.SKFont(TypeFaces.First());
         SubtitleEditorFontFamily = config.SubTitlesFont.Typeface.FamilyName;
     }
+
+    bool renderMenuOpen;
+    bool menuOpen;
+    bool renderProgressOpen;
+    double renderProgress = 0;
+    int renderRes = 1920;
+    bool renderAbort = false;
+    string renderQuality = "medium";
+    string renderProgressText = "Working";
+    string renderOutputFile = "";
+    Dictionary<string, string> renderQualityOptions = new Dictionary<string, string>
+        {
+    { "ultrafast","Fastest (Lowest quality)"},
+    { "medium", "Normal"},
+    { "ultraslow", "Slowest (Lossless Quality)" }
+        };
+    void OpenDrawer()
+    {
+        menuOpen = true;
+    }
+
     public void SeekUpdate(double t){
         CurrentTime = common.timeToString(t);
         renderPreview.Invalidate();
@@ -176,6 +301,103 @@
         e.Surface.Canvas.Scale(1 / scale, 1 / scale);
         canvas.Translate(-(e.Info.Width - width) / 2, -(e.Info.Height - height) / 2);
     }
+    bool hasInitFFMPEG = false;
+    System.Text.StringBuilder FFLog = new System.Text.StringBuilder();
+    async Task GetFFMpeg()
+    {
+        //if (FFmpegFactory.Runtime == null)
+        // In cas renderer has already called it.
+        if (!hasInitFFMPEG)
+        {
+            hasInitFFMPEG = true;
+            renderProgressText = "Downloading FFMPEG...";
+            FFmpegFactory.Logger += l =>
+            {
+                FFLog.AppendLine(l.Message);
+                if (l.Message.Trim().StartsWith("frame="))
+                {
+                    var fNum = int.Parse(l.Message.Split("fps")[0].Trim().Substring(6).Trim());
+                    renderProgressText = "Extracted " + fNum + " frames";
+                    var total = sectionBarControl.sectionBar.Maximum * 30;
+                    renderProgressText = "Encoded frame " + fNum + " of " + total;
+                    renderProgress = fNum / (double)total * 100;
+                    StateHasChanged();
+                }
+
+                Console.WriteLine("ffmpeg: " + l.Message);
+            };
+            //initialize Library
+            await FFmpegFactory.Init(Runtime);
+        }
+
+    }
+    async Task TriggerDownload(string fName)
+    {
+        var outBuffer = await VideoClipEditor.FFMpeg.ReadFile(fName);
+        await Runtime.InvokeVoidAsync("downloadFile", "Render Output" + Path.GetExtension(fName), outBuffer);
+    }
+    async Task RenderAll()
+    {
+        await Task.Run(async () =>
+        {
+            // Prepare UI
+            renderMenuOpen = false;
+            renderProgressOpen = true;
+            renderProgress = 0;
+            renderProgressText = "Downloading FFPEG";
+            StateHasChanged();
+            if (FFmpegFactory.Runtime == null)
+            {
+                await FFmpegFactory.Init(Runtime);
+                //create an instance
+                VideoClipEditor.FFMpeg = FFmpegFactory.CreateFFmpeg();
+                //download all dependencies from cdn
+                await VideoClipEditor.FFMpeg.Load(); //parameter false means not to trigger events in ffmpeg Clase instance
+
+            }
+            renderProgressText = "Creating Frames";
+            renderAbort = false;
+
+            //Render Frames
+            config.TargetSize = new SkiaSharp.SKSize() { Width = renderRes, Height = renderRes / config.AspectRatio };
+            for (int fi = 0; fi < sectionBarControl.sectionBar.Maximum * 30; fi++)
+            {
+                var t = fi / 30.0D;
+                using (var skBitmap = new SkiaSharp.SKBitmap((int)config.TargetSize.Width, (int)config.TargetSize.Height))
+                {
+                    using(var ms = new MemoryStream())
+                    {
+
+                        var canvas = new SkiaSharp.SKCanvas(skBitmap);
+                        var s = skBitmap.Width / 100;
+                        canvas.Scale(s, s);
+                        sectionBarControl.RenderCurrentFrameAtT(canvas, t, config);
+                        skBitmap.Encode(ms, SkiaSharp.SKEncodedImageFormat.Jpeg, 100);
+                        var buffer = ms.ToArray();
+                        var jpgName = "FR" + (fi + 1).ToString().PadLeft(4, '0') + ".jpg";
+                        VideoClipEditor.FFMpeg.WriteFile(jpgName, buffer);
+                        //var readOut = await VideoClipEditor.FFMpeg.ReadFile(jpgName);
+                        //VideoClipEditor.FFMpeg.WriteFile("FR%04d.jpg", buffer);
+                        renderProgress = t / sectionBarControl.sectionBar.Maximum * 100;
+                        await Task.Delay(1);
+                    }
+                }
+                GC.Collect();
+                StateHasChanged();
+            }
+            renderProgress = 0;
+            renderProgressText = "Encoding video";
+            StateHasChanged();
+            var fName = "output.mp4";
+            await GetFFMpeg();
+            await VideoClipEditor.FFMpeg.Run("-framerate", "30", "-r", "30", "-i", "FR%04d.jpg", "-c:v", "libx264", "-crf", "18", "-preset", renderQuality, fName);
+            renderOutputFile = fName;
+
+            renderProgressText = "Your file is ready to be downloaded";
+            renderProgress = -1;
+            Snackbar.Add("Video compiled successfully");
+        });
+    }
     //Common Clip Editing
     Clip ClipUnderEditing;
 
@@ -195,15 +417,15 @@
             SubtitleEditorTextColor = SKColorToMud(config.SubtitleColor);
             SubtitleEditorShadowColor = SKColorToMud(config.ShadowColor);
             SubtitleEditorOverlap = config.SubtitleOverlap;
-            ClipEditorStartingHH = (int)(ClipUnderEditing.Start / 3600);
-            ClipEditorStartingMM = (int)(ClipUnderEditing.Start / 60);
-            ClipEditorStartingSS = (int)(ClipUnderEditing.Start);
-            ClipEditorStartingFF = (ClipUnderEditing.Start - (int)(ClipUnderEditing.Start)) * 30;
+            ClipEditorStartingHH = TimeSpan.FromSeconds(ClipUnderEditing.Start).Hours;
+            ClipEditorStartingMM = TimeSpan.FromSeconds(ClipUnderEditing.Start).Minutes;
+            ClipEditorStartingSS = TimeSpan.FromSeconds(ClipUnderEditing.Start).Seconds;
+            ClipEditorStartingFF = (int)(TimeSpan.FromSeconds(ClipUnderEditing.Start).Milliseconds * 30 / 1000);
             var duration = ClipUnderEditing.End - ClipUnderEditing.Start;
-            ClipEditorDurationHH = (int)(duration / 3600);
-            ClipEditorDurationMM = (int)(duration / 60);
-            ClipEditorDurationSS = (int)(duration);
-            ClipEditorDurationFF = (duration - (int)(duration)) * 30;
+            ClipEditorDurationHH = TimeSpan.FromSeconds(duration).Hours;
+            ClipEditorDurationMM = TimeSpan.FromSeconds(duration).Minutes;
+            ClipEditorDurationSS = TimeSpan.FromSeconds(duration).Seconds;
+            ClipEditorDurationFF = (int)(TimeSpan.FromSeconds(duration).Milliseconds * 30 / 1000);
         }
         else if(clip is PhotoClip)
         {
@@ -213,15 +435,15 @@
             GraphicEditorSize = photoClip.Size;
             GraphicEditorXPosition = photoClip.X;
             GraphicEditorYPosition = photoClip.Y;
-            ClipEditorStartingHH = (int)(ClipUnderEditing.Start / 3600);
-            ClipEditorStartingMM = (int)(ClipUnderEditing.Start / 60);
-            ClipEditorStartingSS = (int)(ClipUnderEditing.Start);
-            ClipEditorStartingFF = (ClipUnderEditing.Start - (int)(ClipUnderEditing.Start)) * 30;
+            ClipEditorStartingHH = TimeSpan.FromSeconds(ClipUnderEditing.Start).Hours;
+            ClipEditorStartingMM = TimeSpan.FromSeconds(ClipUnderEditing.Start).Minutes;
+            ClipEditorStartingSS = TimeSpan.FromSeconds(ClipUnderEditing.Start).Seconds;
+            ClipEditorStartingFF = (int)(TimeSpan.FromSeconds(ClipUnderEditing.Start).Milliseconds * 30 / 1000);
             var duration = ClipUnderEditing.End - ClipUnderEditing.Start;
-            ClipEditorDurationHH = (int)(duration / 3600);
-            ClipEditorDurationMM = (int)(duration / 60);
-            ClipEditorDurationSS = (int)(duration);
-            ClipEditorDurationFF = (duration - (int)(duration)) * 30;
+            ClipEditorDurationHH = TimeSpan.FromSeconds(duration).Hours;
+            ClipEditorDurationMM = TimeSpan.FromSeconds(duration).Minutes;
+            ClipEditorDurationSS = TimeSpan.FromSeconds(duration).Seconds;
+            ClipEditorDurationFF = (int)(TimeSpan.FromSeconds(duration).Milliseconds * 30 / 1000);
         }
         else if (clip is VideoClip)
         {
@@ -231,15 +453,15 @@
             GraphicEditorSize = videoClip.Size;
             GraphicEditorXPosition = videoClip.X;
             GraphicEditorYPosition = videoClip.Y;
-            ClipEditorStartingHH = (int)(ClipUnderEditing.Start / 3600);
-            ClipEditorStartingMM = (int)(ClipUnderEditing.Start / 60);
-            ClipEditorStartingSS = (int)(ClipUnderEditing.Start);
-            ClipEditorStartingFF = (ClipUnderEditing.Start - (int)(ClipUnderEditing.Start)) * 30;
+            ClipEditorStartingHH = TimeSpan.FromSeconds(ClipUnderEditing.Start).Hours;
+            ClipEditorStartingMM = TimeSpan.FromSeconds(ClipUnderEditing.Start).Minutes;
+            ClipEditorStartingSS = TimeSpan.FromSeconds(ClipUnderEditing.Start).Seconds;
+            ClipEditorStartingFF = (int)(TimeSpan.FromSeconds(ClipUnderEditing.Start).Milliseconds * 30 / 1000);
             var duration = ClipUnderEditing.End - ClipUnderEditing.Start;
-            ClipEditorDurationHH = (int)(duration / 3600);
-            ClipEditorDurationMM = (int)(duration / 60);
-            ClipEditorDurationSS = (int)(duration);
-            ClipEditorDurationFF = (duration - (int)(duration)) * 30;
+            ClipEditorDurationHH = TimeSpan.FromSeconds(duration).Hours;
+            ClipEditorDurationMM = TimeSpan.FromSeconds(duration).Minutes;
+            ClipEditorDurationSS = TimeSpan.FromSeconds(duration).Seconds;
+            ClipEditorDurationFF = (int)(TimeSpan.FromSeconds(duration).Milliseconds * 30 / 1000);
         }
     }
 
@@ -387,9 +609,7 @@
         {
             var videoClip = (VideoClip)ClipUnderEditing;
             videoClip.Source = videoEditor.SelectedVideo;
-            videoClip.Data = videoEditor.SelectedVideoData;
-            if (videoEditor.SelectedVideoData != null)
-                videoClip.End = videoClip.Start + (videoEditor.SelectedVideoData.Length / 30.0F);
+            videoClip.Data = videoEditor.SelectedVideoData; 
             sectionBarControl.ResetMaxTime();
             videoClip.Size = videoEditor.Size;
             videoClip.X = videoEditor.XPosition;

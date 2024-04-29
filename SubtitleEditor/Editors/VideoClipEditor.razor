@@ -21,7 +21,7 @@
      </MudItem>
      <MudDivider DividerType="DividerType.FullWidth" />
      <MudItem md="3" Class="py-0">
-         <MudNumericField Value="@DurationHH" TextChanged="@OnATextChanged" Label="hours" Immediate="true"  Variant="Variant.Filled" Min="0.0" Max="1000" />
+         <MudNumericField @bind-Value="@DurationHH" TextChanged="@OnATextChanged" Label="hours" Immediate="true"  Variant="Variant.Filled" Min="0.0" Max="1000" />
      </MudItem>
      <MudItem md="3" Class="py-0">
          <MudNumericField @bind-Value="@DurationMM" TextChanged="@OnATextChanged" Label="minutes" Immediate="true"  Variant="Variant.Filled" Min="0.0" Max="59" />
@@ -137,8 +137,16 @@
     protected override async Task OnInitializedAsync()
     {
 
-        if (FFmpegFactory.Runtime == null)
+    }
+    bool hasInitFFMPEG = false;
+    async Task GetFFMpeg()
+    {
+        //if (FFmpegFactory.Runtime == null)
+        // In cas renderer has already called it.
+        if (!hasInitFFMPEG)
         {
+            hasInitFFMPEG = true;
+            progressDescription = "Downloading FFMPEG...";
             FFmpegFactory.Logger += l =>
             {
                 FFLog.AppendLine(l.Message);
@@ -161,10 +169,10 @@
                 Console.WriteLine("ffmpeg: " + l.Message);
             };
             FFmpegFactory.Progress += ProgressChange;
+            //initialize Library
+            await FFmpegFactory.Init(Runtime);
         }
 
-        //initialize Library
-        await FFmpegFactory.Init(Runtime);
     }
     void ProgressChange(Progress m)
     {
@@ -251,6 +259,7 @@
         var videoFileSeed = randomString();
         var videoFileName = videoFileSeed + file.Name.Substring(file.Name.LastIndexOf('.'));
         // G
+        await GetFFMpeg();
         await LoadFileInFFMpeg(file, videoFileName); // +100MB
         await ConvertFFMpegToPngs(videoFileSeed, videoFileName); // +100
         var frames = await ConvertPNGsToSKBitmaps(videoFileSeed); // +1800
@@ -265,7 +274,13 @@
             return;
         }
         SelectedVideoData = frames.ToArray();
-        
+
+        var duration = SelectedVideoData.Length / 30.0F;
+        DurationHH = TimeSpan.FromSeconds(duration).Hours;
+        DurationMM = TimeSpan.FromSeconds(duration).Minutes;
+        DurationSS = TimeSpan.FromSeconds(duration).Seconds;
+        DurationFF = (int)(Math.Round((double)TimeSpan.FromSeconds(duration).Milliseconds / 30));
+
         converting = false;
         StateHasChanged();
         Snackbar.Add("Video successfully processed!", Severity.Success);
