@@ -7,7 +7,7 @@ namespace SubtitleEditor.SectionDef
 {
     public class Clip : IDisposable
     {
-        public string Source { get; set; }
+        public string? Source { get; set; }
         int minZoom = 10;
         public bool selected = false;
         public delegate void OnDebugHandler(object sender, debugEventArgs e);
@@ -213,7 +213,7 @@ namespace SubtitleEditor.SectionDef
             catch { }
             //g.FillRectangle((Brush)new SolidBrush(Color.FromArgb(30, 0, 255, 0)), zsRec);
         }
-        public virtual void Render(double position, SKCanvas canvas, RenderConfig config)
+        public virtual async Task RenderAsync(double position, SKCanvas canvas, RenderConfig config)
         {
 
         }
@@ -234,7 +234,7 @@ namespace SubtitleEditor.SectionDef
             // seek bar cannot be -1 or 1
             if (HeldComp < -1 || HeldComp > 1)
             {
-                int inTol = 1, outTol = 8;
+                int inTol = 4, outTol = 4;
 
                 if (secType == SectionBarPart.SeekBar)
                 {
@@ -258,12 +258,10 @@ namespace SubtitleEditor.SectionDef
                     if (e.X >= sToE - outTol && e.X <= sToE + inTol)
                     {
                         c = Cursors.VSplit; hoverOver = -1;
-                        if (e.X >= eToE - inTol && e.X <= eToE + outTol) // also +1
-                        { c = Cursors.NoMoveHoriz; hoverOver = 0; }
                     }
                     else if (e.X >= eToE - inTol && e.X <= eToE + outTol)
                     { c = Cursors.VSplit; hoverOver = 1; }
-                    else if (eToSs >= Start && eToSs <= End)
+                    else if (e.X >= sToE && e.X <= eToE)
                     { c = Cursors.NoMoveHoriz; hoverOver = 0; }
                     else
                     {
@@ -309,7 +307,7 @@ namespace SubtitleEditor.SectionDef
             {
                 // for length changing bars
 
-                double minT = 0.25;
+                double minT = 1/30.0; // 30fps
                 int movE = e.X - mDownOn.X;
 
                 double mov = Math.Round(movE * ((double)max - min) / Width, 1);

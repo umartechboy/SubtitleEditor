@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Authorization;
+﻿using FFmpegBlazor;
+using Microsoft.AspNetCore.Authorization;
 using MudBlazor;
 using SkiaSharp;
 using System.Drawing;
@@ -19,26 +20,28 @@ namespace SubtitleEditor.SectionDef
 		public VideoClip(double start, double end) : base(start, end, "")
 		{
 		}
-		public SKBitmap[] Data { get; set; }
+		public HybridSKBitmap[]? Data { get; set; }
 		public float Size { get; set; } = 100;
 		public float X { get; set; } = 50;
 		public float Y { get; set; } = 50 * 9 / 16.0F;
 		public float fps { get; set; } = 30;
-		public override void Render(double position, SKCanvas canvas, RenderConfig config)
+		public override async Task RenderAsync(double position, SKCanvas canvas, RenderConfig config)
 		{
 			if (Data != null && position >= Start && position <= End)
 			{
 				var fractionTimeToRender = (position - this.Start) / (End - Start);
 				var indexToRender = (int)Math.Round((Data.Length - 1) * fractionTimeToRender);
 
-				float aspect = Data[indexToRender].Width / (float)Data[indexToRender].Height;
+                var bmp = await Data[indexToRender].GetSKBimap();
+
+                float aspect = bmp.Width / (float)bmp.Height;
 				
 				var wid = /* We are gonna force fit */ 100 * (/* User Scale */Size / 100);
 				var hei = wid / aspect;
 				var x = X - wid / 2;
 				var y = Y - hei / 2;
                 RectangleF r = new RectangleF(x, y, wid, hei);
-				canvas.DrawBitmap(Data[indexToRender], new SKRect(r.Left, r.Top, r.Right, r.Bottom));
+				canvas.DrawBitmap(bmp, new SKRect(r.Left, r.Top, r.Right, r.Bottom));
 			}
 		}
 	}
@@ -51,7 +54,7 @@ namespace SubtitleEditor.SectionDef
         public PhotoClip(double start, double end) : base(start, end, "")
         {
         }
-        public override void Render(double position, SKCanvas canvas, RenderConfig config)
+        public override async Task RenderAsync(double position, SKCanvas canvas, RenderConfig config)
         {
             if (Data != null && position >= Start && position <= End)
             {
@@ -139,9 +142,9 @@ namespace SubtitleEditor.SectionDef
                 yOffset += defPaint.FontSpacing;
             }
         }
-        public override void Render(double position, SKCanvas canvas, RenderConfig config)
+        public override async Task RenderAsync(double position, SKCanvas canvas, RenderConfig config)
         {
-            if (Source.Trim().Length > 0 && position >= Start - config.SubtitleOverlap && position <= End + config.SubtitleOverlap)
+            if (Source?.Trim().Length > 0 && position >= Start - config.SubtitleOverlap && position <= End + config.SubtitleOverlap)
             {
                 float opacity = 1;
                 if (position <= Start)
@@ -193,5 +196,38 @@ namespace SubtitleEditor.SectionDef
 
         public float SubtitleOverlap { get; set; } = 0.2F;
         public SKPoint SubtitleLocation { get; set; }
+    }
+    public class HybridSKBitmap 
+    {
+        public SKBitmap? Bitmap { get; set;}
+        public string? FFMpegFile { get; set; }
+        public FFMPEG? FFMpeg { get; set; }
+        public HybridSKBitmap(string fName, FFMPEG fFMPEG)
+        {
+            FFMpegFile = fName;
+            FFMpeg = fFMPEG;
+        }
+        public void Free()
+        {
+            Bitmap?.Dispose();
+            Bitmap = null;
+            GC.Collect();
+        }
+        public async Task<SKBitmap> GetSKBimap()
+        {
+            if (Bitmap == null)
+            {
+                try
+                {
+                    var frame = await FFMpeg.ReadFile(FFMpegFile);
+                    var bmp = SKBitmap.Decode(frame);
+                    Bitmap = bmp;
+                }
+                catch (Exception ex)
+                {
+                }
+            }
+            return Bitmap;
+        }
     }
 }

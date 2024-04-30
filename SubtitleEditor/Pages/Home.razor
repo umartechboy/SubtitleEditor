@@ -22,8 +22,8 @@
 		    <MudPaper Class="d-flex object-center mud-width-full">
 			    <SkiaSharp.Views.Blazor.SKGLView @ref=renderPreview
 											     IgnorePixelScaling="true"
-											     OnPaintSurface="OnRenderPaint"
-											     style="width: 100%; height: 70vh;margin: 0px 0px 0px 0px;"></SkiaSharp.Views.Blazor.SKGLView>
+											     OnPaintSurface="async (e) => await OnRenderPaint(e)"
+											     style="width: 100%; height: 70h;margin: 0px 0px 0px 0px;"></SkiaSharp.Views.Blazor.SKGLView>
             </MudPaper>
         </MudItem>
         <MudItem xs="12">
@@ -324,7 +324,7 @@
         renderPreview.Invalidate();
     }
 
-    protected void OnRenderPaint(SKPaintGLSurfaceEventArgs e)
+    protected async Task OnRenderPaint(SKPaintGLSurfaceEventArgs e)
     {
         var canvas = e.Surface.Canvas;
         canvas.Clear();
@@ -348,7 +348,7 @@
 
         config.TargetSize = new SkiaSharp.SKSize() { Width = width, Height = height };
 
-        sectionBarControl.RenderCurrentFrame(
+        await sectionBarControl.RenderCurrentFrame(
             e.Surface.Canvas, config);
         e.Surface.Canvas.Scale(1 / scale, 1 / scale);
         canvas.Translate(-(e.Info.Width - width) / 2, -(e.Info.Height - height) / 2);
@@ -813,7 +813,7 @@
 
     // Video Clip Editor
 
-    protected SkiaSharp.SKBitmap[] VideoEditorData { get; set; }
+    protected HybridSKBitmap[]? VideoEditorData { get; set; }
     public void VideoEditorOnAChange(SubtitleEditor.Editors.VideoClipEditor videoEditor)
     {
         if (ClipUnderEditing == null)

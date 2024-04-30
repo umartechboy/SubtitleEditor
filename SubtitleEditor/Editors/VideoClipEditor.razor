@@ -78,9 +78,9 @@
 @inject ISnackbar Snackbar
 @code {
     [Parameter]
-    public string SelectedVideo { get; set; }
+    public string? SelectedVideo { get; set; }
     [Parameter]
-    public SkiaSharp.SKBitmap[] SelectedVideoData { get; set; }
+    public HybridSKBitmap[]? SelectedVideoData { get; set; }
     [Parameter]
     public float Size { get; set; }
     [Parameter]
@@ -230,9 +230,9 @@
         FFMpeg.UnlinkFile(videoFileName);
         GC.Collect();
     }
-    protected async Task<List<SkiaSharp.SKBitmap>> ConvertPNGsToSKBitmaps(string videoFileSeed)
+    protected async Task<List<HybridSKBitmap>> ConvertPNGsToSKBitmaps(string videoFileSeed)
     {
-        var frames = new List<SkiaSharp.SKBitmap>();
+        var frames = new List<HybridSKBitmap>();
         for (int i = 1; i <= parsedVideoFrames; i++)
         {
             progressDescription = "Converting frame " + i + " of " + parsedVideoFrames;
@@ -241,11 +241,7 @@
             try
             {
                 var png = videoFileSeed + "_frames_" + i.ToString().PadLeft(4, '0') + ".png";
-                var frame = await FFMpeg.ReadFile(png);
-                FFMpeg.UnlinkFile(png);
-                GC.Collect();
-                var bmp = SkiaSharp.SKBitmap.Decode(frame);
-                frames.Add(bmp);
+                frames.Add(new HybridSKBitmap(png, FFMpeg));
             }
             catch (Exception ex)
             {

@@ -39,13 +39,6 @@ namespace SubtitleEditor.SectionDef
             Button = e.Button == 0 ? MouseButtons.Left : e.Button == 2 ? MouseButtons.Right : MouseButtons.Middle;
         }
     }
-    public enum Cursors
-    {
-        Default = 0,
-        IBeam = 1,
-        NoMoveHoriz = 2,
-        VSplit = 3,
-    }
     public delegate void MouseEventHandler(object sender, MouseEventArgs e);
     public class Graphics
     {
@@ -210,8 +203,15 @@ namespace SubtitleEditor.SectionDef
             // Draw a rectangle filled with the linear gradient
             canvas.DrawRoundRect(new SKRect(x, y, x + width, y + height), radius, radius, paint);
         }
-    }
-    public class Cursor
+	}
+	public enum Cursors
+	{
+		Default = 0,
+		IBeam = 1,
+		NoMoveHoriz = 2,
+		VSplit = 3,
+	}
+	public class Cursor
     {
         Cursors currentValue;
         public static implicit operator Cursor(Cursors c)

@@ -4,6 +4,7 @@ using System.Drawing;
 using OpenTK.Graphics.OpenGL;
 using SkiaSharp.Views.Blazor;
 using SkiaSharp;
+using Microsoft.JSInterop;
 
 namespace SubtitleEditor.SectionDef
 {
@@ -125,14 +126,14 @@ namespace SubtitleEditor.SectionDef
             
         }
 
-		public void RenderFrame(double position, SKCanvas canvas, RenderConfig config)
+		public async Task RenderFrameAsync(double position, SKCanvas canvas, RenderConfig config)
         {
             var ll = new List<List<Clip>>();
             ll.AddRange(Layers);
             ll.Reverse();
             foreach (var layer in ll)
                 foreach (var clip in layer)
-                    clip.Render(position, canvas, config);
+                    await clip.RenderAsync(position, canvas, config);
         }
         bool ddess = false, ddss = false, ddsgs = false;
         // save the current hover section in hovSec. Update it on any mouse movements
@@ -195,7 +196,6 @@ namespace SubtitleEditor.SectionDef
         public SectionBar(Action invalidate, int layers)
         {
             _invalidate = invalidate;
-            Cursor = new Cursor(); // give it JS Interrop later
                                    // override mouse click events and intercept others.
             MouseMove += OnMouseMove;
             MouseEnter += OnMouseEnter;
@@ -459,9 +459,8 @@ namespace SubtitleEditor.SectionDef
                         if(Layers[layerIndex][i].selected)
                             OnClipEditRequest(this, new ClipArgs() { Clip = Layers[layerIndex][i] });
                         OnRequestToRenderPreview?.Invoke(this, EventArgs.Empty);
-                    }
-                    else
-                        Layers[layerIndex][i].MouseUp();
+					}
+					Layers[layerIndex][i].MouseUp();
                 }
             Invalidate();
         }
