@@ -486,6 +486,9 @@
 
     protected async Task UploadAudio(IBrowserFile file)
     {
+        // new Thread(async () =>
+        // {
+            
         processProgressTitle = "Extract Lyrics";
         var stream = file.OpenReadStream(10000000);
         var mp3 = new byte[file.Size];
@@ -558,6 +561,23 @@
             whisperProcessor[modelToUse] = whisperFactory[modelToUse].CreateBuilder()
             .WithPrintProgress()
             .WithPrintResults()
+            .WithSegmentEventHandler(async (result) =>
+            {
+                totalWords += result.Text.Split(' ').Length;
+                // Add a new clip for this
+                var subClip = new SubtitleClip(result.Start.TotalSeconds, result.End.TotalSeconds, result.Text);
+                sectionBarControl.sectionBar.Layers[2].Add(subClip);
+                sectionBarControl.ResetMaxTime();
+
+                processProgressText = (++totalSubs) + ": " + result.Text + " [" + result.Probability + "]";
+                confidance += result.Probability;
+                Console.WriteLine($"{result.Start}->{result.End}: {processProgressText}");
+                sectionBarControl.Invalidate();
+                processProgress = (result.End.TotalSeconds / duration) * 100;
+
+                StateHasChanged();
+                await Task.Delay(100);
+            })
             .WithLanguage("en")
             .Build();
             StateHasChanged();
@@ -565,31 +585,29 @@
         }
 
         sectionBarControl.sectionBar.Layers[2].Clear();
-        await foreach (var result in whisperProcessor[modelToUse]!.ProcessAsync(new MemoryStream(wave)))
-        {
-            totalWords += result.Text.Split(' ').Length;
-            // Add a new clip for this
-            var subClip = new SubtitleClip(result.Start.TotalSeconds, result.End.TotalSeconds, result.Text);
-            sectionBarControl.sectionBar.Layers[2].Add(subClip);
-            sectionBarControl.ResetMaxTime();
-
-            processProgressText = (++totalSubs) + ": " + result.Text + " [" + result.Probability + "]";
-            confidance += result.Probability;
-            Console.WriteLine($"{result.Start}->{result.End}: {processProgressText}");
-            sectionBarControl.Invalidate();
-            processProgress = (result.End.TotalSeconds / duration) * 100;
-
-            StateHasChanged();
-            await Task.Delay(100);
-        }
+        whisperProcessor[modelToUse]!.Process(new MemoryStream(wave));
         confidance /= totalSubs;
         processProgressText = "All done!";
         processProgress = -1;
-        sectionBarControl.sectionBar.Layers[4].Clear();
-        sectionBarControl.sectionBar.Layers[4].Add(new AudioClip(0, duration, mp3, file.Name));
+        if (sectionBarControl.sectionBar.Layers[0].Count <= 0) // Intro/Outro
+        {
+            sectionBarControl.sectionBar.Layers[0].Add(new VideoClip(0, 20)); // intro
+            sectionBarControl.sectionBar.Layers[0].Add(new VideoClip(duration - 20, duration)); // intro
+        }
+        if (sectionBarControl.sectionBar.Layers[1].Count <= 0) // Logo
+            sectionBarControl.sectionBar.Layers[1].Add(new VideoClip(0, duration)); // intro
+
+        if (sectionBarControl.sectionBar.Layers[3].Count <= 0) // Background 1
+            sectionBarControl.sectionBar.Layers[3].Add(new VideoClip(0, duration));
+
+        if (sectionBarControl.sectionBar.Layers[4].Count <= 0) // Background
+            sectionBarControl.sectionBar.Layers[4].Add(new PhotoClip(0, duration));
+
+        sectionBarControl.sectionBar.Layers.Last().Add(new AudioClip(0, duration, mp3, file.Name));
         sectionBarControl.sectionBar.ResetMaxTime();
         Snackbar.Add($"Audio was processed successfully and lyrics where added to the timeline. Total {totalSubs} lyrics containing {totalWords} words exracted with an overall confidance of {confidance}.");
         StateHasChanged();
+    // }).Start();
     }
 
     //Common Clip Editing

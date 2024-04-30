@@ -40,19 +40,14 @@
 
 	protected override async Task OnInitializedAsync()
 	{
-		sectionBar = new SectionBar(()=> skView?.Invalidate(), 5);
+		sectionBar = new SectionBar(()=> skView?.Invalidate(), 6);
 		sectionBar.SeekPointChanged += async (s, e) => {
 			SeekPosition = e.Value;
 			await SeekUpdate.InvokeAsync(e.Value); 
 		};
 		sectionBar.OnRequestToRenderPreview += async (s, e) => await RenderPreview.InvokeAsync();
 		sectionBar.OnClipEditRequest += async (s, e) => await EditClip.InvokeAsync(e.Clip);
-		sectionBar.Layers[0].Add(new SubtitleClip(1, 5, "Hello, world"));
-		sectionBar.Layers[0].Add(new SubtitleClip(5, 10, "ABCD"));
-		sectionBar.Layers[1].Add(new SubtitleClip(3, 10, "ABCD"));
-		sectionBar.Layers[2].Add(new PhotoClip(5, 10));
-		sectionBar.Layers[3].Add(new VideoClip(0, 10));
-		sectionBar.Layers[4].Add(new PhotoClip(0, 10));
+		sectionBar.Layers[2].Add(new SubtitleClip(0, 5, "Hello, world")); // sample sub
 		sectionBar.DiableDefaultEmptySectionStrip = false;
 		sectionBar.DiableDefaultSectionGroupStrip = false;
 		sectionBar.DiableDefaultSectionStrip = false;
