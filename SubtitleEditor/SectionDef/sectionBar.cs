@@ -539,7 +539,7 @@ namespace SubtitleEditor.SectionDef
             int over = 0;
             if (zoomSection != null)
             {
-                c = zoomSection.MouseMove(-1, Layers.Count, p, Maximum, Minimum, LayersSectionWidth, Height, Cursor, Invalidate, SectionBarPart.ZoomBar, Minimum, Maximum);
+                c = zoomSection.MouseMove(-1, Layers.Count, p, Maximum, Minimum, LayersSectionWidth, Height, Cursor, Invalidate, Minimum, Maximum);
                 ShowMin = ZoomStart;
                 ShowMax = ZoomEnd;
                 if (c != Cursors.Default)
@@ -553,7 +553,7 @@ namespace SubtitleEditor.SectionDef
                     for (int layerIndex = 0; layerIndex < Layers.Count; layerIndex++)
                         ClearSelectedSections(layerIndex);
             }
-            Cursor c2 = seekBar.MouseMove(-1, Layers.Count, p, ShowMax, ShowMin, LayersSectionWidth, Height, Cursor, Invalidate, SectionBarPart.SeekBar, Minimum, Maximum);
+            Cursor c2 = seekBar.MouseMove(-1, Layers.Count, p, ShowMax, ShowMin, LayersSectionWidth, Height, Cursor, Invalidate, Minimum, Maximum);
             if (tp == SectionBarPart.SeekBar)
                 c = c2;
 
@@ -583,7 +583,7 @@ namespace SubtitleEditor.SectionDef
                     if ((Layers[layerIndex][i].HeldComp == 0 || Layers[layerIndex][i].selected) && tp == SectionBarPart.Sections)
                         Layers[layerIndex][i].selected = true;
                     c =
-                        Layers[layerIndex][i].MouseMove(layerIndex, Layers.Count, p, ShowMax, ShowMin, LayersSectionWidth, Height, Cursor, Invalidate, SectionBarPart.Sections,
+                        Layers[layerIndex][i].MouseMove(layerIndex, Layers.Count, p, ShowMax, ShowMin, LayersSectionWidth, Height, Cursor, Invalidate,
                         secMinTemp,
                         secMaxTemp);
 
@@ -655,11 +655,11 @@ namespace SubtitleEditor.SectionDef
                     0, zsw, LayersSectionWidth, zsw);
                 // all sections Background
                 if (zoomSection != null)
-                    zoomSection.OnPaintBefore(-1, Layers.Count, Minimum, Maximum, LayersSectionWidth, Height - sbh, g, SectionBarPart.ZoomBar, Minimum, Maximum);
+                    zoomSection.OnPaintBefore(-1, Layers.Count, Minimum, Maximum, LayersSectionWidth, Height - sbh, g, Minimum, Maximum);
 
                 for (int layerIndex = 0; layerIndex < Layers.Count; layerIndex++)
                     for (int i = 0; i < Layers[layerIndex].Count; i++)
-                        Layers[layerIndex][i].OnPaintBefore(layerIndex, Layers.Count, ShowMin, ShowMax, LayersSectionWidth, Height - sbh, g, SectionBarPart.Sections, Minimum, Maximum);
+                        Layers[layerIndex][i].OnPaintBefore(layerIndex, Layers.Count, ShowMin, ShowMax, LayersSectionWidth, Height - sbh, g, Minimum, Maximum);
 
                 //draw the grid
                 for (int i = (int)Math.Round(ShowMin); i < ShowMax; i++)
@@ -708,7 +708,7 @@ namespace SubtitleEditor.SectionDef
                     zoomSection.OnPaintAfter(g);
 
                 if (seekBar != null)
-                    seekBar.OnPaintBefore(-1, Layers.Count, ShowMin, ShowMax, LayersSectionWidth, Height, g, SectionBarPart.SeekBar, Minimum, Maximum); ;
+                    seekBar.OnPaintBefore(-1, Layers.Count, ShowMin, ShowMax, LayersSectionWidth, Height, g, Minimum, Maximum); ;
 
                 for (int layerIndex = 0; layerIndex < Layers.Count; layerIndex++)
                     for (int i = 0; i < Layers[layerIndex].Count; i++)

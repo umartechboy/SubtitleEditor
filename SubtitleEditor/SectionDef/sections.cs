@@ -48,7 +48,7 @@ namespace SubtitleEditor.SectionDef
         protected RectangleF zsRec = new RectangleF();
 
         //some items need to be painted the grid is painted.
-        public virtual void OnPaintBefore(int layerIndex, int layersCount, double min, double max, int Width, int Height, Graphics g, SectionBarPart secType, double bMin, double bMax)
+        public virtual void OnPaintBefore(int layerIndex, int layersCount, double min, double max, int Width, int Height, Graphics g, double bMin, double bMax)
         {
             // Handled by chlid classes
         }
@@ -62,7 +62,7 @@ namespace SubtitleEditor.SectionDef
             g.DrawRectangle(Color.FromArgb(44, 197, 70, 0), 2, zsRec);
 
         }
-        public virtual Cursor MouseMove(int layerIndex, int layersCount, Point e, double max, double min, int Width, int Height, Cursor c, InvalidateRef method, SectionBarPart secType, double bMin, double bigM)
+        public virtual Cursor MouseMove(int layerIndex, int layersCount, Point e, double max, double min, int Width, int Height, Cursor c, InvalidateRef method, double bMin, double bigM)
         {
             // Handled in child classes
             throw new NotImplementedException();

@@ -14,7 +14,7 @@ namespace SubtitleEditor.SectionDef
         {
 
         }
-		public override void OnPaintBefore(int layerIndex, int layersCount, double min, double max, int Width, int Height, Graphics g, SectionBarPart secType, double bMin, double bMax)
+		public override void OnPaintBefore(int layerIndex, int layersCount, double min, double max, int Width, int Height, Graphics g, double bMin, double bMax)
 		{
             try
             {
@@ -57,7 +57,7 @@ namespace SubtitleEditor.SectionDef
             catch { }
 		}
 
-		public override Cursor MouseMove(int layerIndex, int layersCount, Point e, double max, double min, int Width, int Height, Cursor c, InvalidateRef method, SectionBarPart secType, double bMin, double bigM)
+		public override Cursor MouseMove(int layerIndex, int layersCount, Point e, double max, double min, int Width, int Height, Cursor c, InvalidateRef method, double bMin, double bigM)
 		{
 			int eToSs = (int)Math.Round(e.X * (max - min) / Width + min);
 			int sToE = (int)Math.Round(((double)Start - min) / (max - min) * Width);
@@ -151,7 +151,7 @@ namespace SubtitleEditor.SectionDef
 
 		}
         //some items need to be painted the grid is painted.
-        public override void OnPaintBefore(int layerIndex, int layersCount, double min, double max, int Width, int Height, Graphics g, SectionBarPart secType, double bMin, double bMax)
+        public override void OnPaintBefore(int layerIndex, int layersCount, double min, double max, int Width, int Height, Graphics g, double bMin, double bMax)
         {
             try
             {
@@ -198,7 +198,7 @@ namespace SubtitleEditor.SectionDef
             //g.FillRectangle((Brush)new SolidBrush(Color.FromArgb(30, 0, 255, 0)), zsRec);
         }
 
-		public override Cursor MouseMove(int layerIndex, int layersCount, Point e, double max, double min, int Width, int Height, Cursor c, InvalidateRef method, SectionBarPart secType, double bMin, double bigM)
+		public override Cursor MouseMove(int layerIndex, int layersCount, Point e, double max, double min, int Width, int Height, Cursor c, InvalidateRef method, double bMin, double bigM)
 		{
 			int eToSs = (int)Math.Round(e.X * (max - min) / Width + min);
 			int sToE = (int)Math.Round(((double)Start - min) / (max - min) * Width);
@@ -211,8 +211,7 @@ namespace SubtitleEditor.SectionDef
 			{
 				int inTol = 4, outTol = 4;
 
-					if (secType == SectionBarPart.ZoomBar)
-						inTol = ZoomBarHeight / 2;
+					inTol = ZoomBarHeight / 2;
 					// determine a hover section. dont consider y position yet
 					if (e.X >= sToE - outTol && e.X <= sToE + inTol)
 					{
@@ -308,7 +307,7 @@ namespace SubtitleEditor.SectionDef
         {
 
         }
-        public override void OnPaintBefore(int layerIndex, int layersCount, double min, double max, int Width, int Height, Graphics g, SectionBarPart secType, double bMin, double bMax)
+        public override void OnPaintBefore(int layerIndex, int layersCount, double min, double max, int Width, int Height, Graphics g, double bMin, double bMax)
         {
             //this rect will be used for overview section
             Rectangle zsRec2 = new Rectangle();
@@ -394,7 +393,7 @@ namespace SubtitleEditor.SectionDef
             //g.FillRectangle((Brush)new SolidBrush(Color.FromArgb(30, 0, 255, 0)), zsRec);
         }
 
-        public override Cursor MouseMove(int layerIndex, int layersCount, Point e, double max, double min, int Width, int Height, Cursor c, InvalidateRef method, SectionBarPart secType, double bMin, double bigM)
+        public override Cursor MouseMove(int layerIndex, int layersCount, Point e, double max, double min, int Width, int Height, Cursor c, InvalidateRef method, double bMin, double bigM)
         {
             int eToSs = (int)Math.Round(e.X * (max - min) / Width + min);
             int sToE = (int)Math.Round(((double)Start - min) / (max - min) * Width);
@@ -407,8 +406,6 @@ namespace SubtitleEditor.SectionDef
             {
                 int inTol = 4, outTol = 4;
 
-                if (secType == SectionBarPart.ZoomBar)
-                    inTol = ZoomBarHeight / 2;
                 // determine a hover section. dont consider y position yet
                 if (e.X >= sToE - outTol && e.X <= sToE + inTol)
                 {
