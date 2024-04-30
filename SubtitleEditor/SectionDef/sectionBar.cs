@@ -208,8 +208,8 @@ namespace SubtitleEditor.SectionDef
             Minimum = 0;
             Maximum = 120;
             //default zoom section
-            zoomSection = new Clip(Minimum, Maximum);
-            seekBar = new Clip(0, 0);
+            zoomSection = new ZoomBarClip(Minimum, Maximum);
+            seekBar = new SeekBarClip(0);
             //init sections
             Layers = new List<List<Clip>>();
             for (int i = 0; i < layers; i++)
