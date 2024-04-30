@@ -310,7 +310,7 @@ namespace SubtitleEditor.SectionDef
                 double minT = 1/30.0; // 30fps
                 int movE = e.X - mDownOn.X;
 
-                double mov = Math.Round(movE * ((double)max - min) / Width, 1);
+                double mov = Math.Round(movE * ((double)max - min) / Width, 2);
                 //seek bar cannot be -1 or 1, its 0, -2, 2, or 3
                 if (HeldComp == 0) // draging
                 {
