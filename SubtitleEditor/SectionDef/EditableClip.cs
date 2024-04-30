@@ -13,12 +13,15 @@ namespace SubtitleEditor.SectionDef
         public AudioClip(double start, double end, byte[] data, string fname) : base(start, end, fname)
         {
             Data = data;
-        }
-    }
+			this.Color = System.Drawing.Color.FromArgb(30, 168, 150);
+		}
+
+	}
     public class VideoClip : Clip
 	{
 		public VideoClip(double start, double end) : base(start, end, "")
 		{
+			this.Color = System.Drawing.Color.FromArgb(255, 113, 91);
 		}
 		public HybridSKBitmap[]? Data { get; set; }
 		public float Size { get; set; } = 100;
@@ -53,6 +56,7 @@ namespace SubtitleEditor.SectionDef
         public float Y { get; set; } = 50 * 9 / 16.0F;
         public PhotoClip(double start, double end) : base(start, end, "")
         {
+			this.Color = System.Drawing.Color.FromArgb(120, 0, 0);
         }
         public override async Task RenderAsync(double position, SKCanvas canvas, RenderConfig config)
         {
@@ -72,6 +76,7 @@ namespace SubtitleEditor.SectionDef
     {
         public SubtitleClip(double start, double end, string source) : base(start, end, source)
         {
+			this.Color = System.Drawing.Color.FromArgb(255, 190, 11);
         }
         void DrawWrapLines(float x, float y, string longLine, float lineLengthLimit, SKCanvas canvas, SKPaint defPaint, RenderConfig config)
         {

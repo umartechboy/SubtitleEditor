@@ -56,7 +56,10 @@
 		};
 		sectionBar.OnRequestToRenderPreview += async (s, e) => await RenderPreview.InvokeAsync();
 		sectionBar.OnClipEditRequest += async (s, e) => await EditClip.InvokeAsync(e.Clip);
-		sectionBar.Layers[2].Add(new SubtitleClip(0, 5, "Hello, world")); // sample sub
+		sectionBar.Layers[0].Add(new SubtitleClip(0, 5, "Hello, world")); // sample sub
+		sectionBar.Layers[1].Add(new AudioClip(0, 5, null, "")); // sample sub
+		sectionBar.Layers[2].Add(new VideoClip(0, 5)); // sample sub
+		sectionBar.Layers[3].Add(new PhotoClip(0, 5)); // sample sub
 		sectionBar.DiableDefaultEmptySectionStrip = false;
 		sectionBar.DiableDefaultSectionGroupStrip = false;
 		sectionBar.DiableDefaultSectionStrip = false;

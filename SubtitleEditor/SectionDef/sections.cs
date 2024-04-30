@@ -12,7 +12,8 @@ namespace SubtitleEditor.SectionDef
         public bool selected = false;
         public delegate void OnDebugHandler(object sender, debugEventArgs e);
         public event OnDebugHandler OnDebug;
-        void DEBUG(string str)
+		public System.Drawing.Color Color { get; protected set; }
+		void DEBUG(string str)
         {
             if (OnDebug != null)
                 OnDebug(this, new debugEventArgs(str));
@@ -75,52 +76,53 @@ namespace SubtitleEditor.SectionDef
                         (int)Math.Round(((double)End - Start) / (bMax - bMin) * Width),
                         ZoomBarHeight);
 
-                    Color[] cNormal = new Color[] { Color.FromArgb(40, 233, 91, 50), Color.FromArgb(30, 81, 48, 235) };
-                    Color[] cHover = new Color[] { Color.FromArgb(70, 233, 91, 50), Color.FromArgb(60, 81, 48, 235) };
-                    Color[] cSelect = new Color[] { Color.FromArgb(220, 233, 91, 49), Color.FromArgb(180, 219, 45, 238) };
-                    Color[] cHeld = new Color[] { Color.FromArgb(110, 233, 91, 49), Color.FromArgb(100, 219, 45, 238) };
+                    Color cNormal = Color.FromArgb(50, this.Color);
+					Color cHover = Color.FromArgb(80, this.Color);
+                    Color cSelect = Color.FromArgb(160, this.Color);
+                    Color cHeld = Color.FromArgb(120, this.Color);
 
-                    Color c1 = cNormal[ID];
+
+					Color c1 = cNormal;
                     Color c2 = c1;
                     Color c3 = c1;
 
                     //hover colors
                     if (hoverOver == 1)
-                        c3 = cHover[ID];
+                        c3 = cHover;
                     else if (hoverOver == -1)
-                        c1 = cHover[ID];
+                        c1 = cHover;
                     else if (hoverOver == 0)
                     {
-                        c1 = cHover[ID];
-                        c2 = cHover[ID];
-                        c3 = cHover[ID];
+                        c1 = cHover;
+                        c2 = cHover;
+                        c3 = cHover;
                     }
 
 
                     //held Colors
                     if (HeldComp == 0 && !selected)
                     {
-                        c1 = cHeld[ID];
+                        c1 = cHeld;
                         c2 = c1;
                         c3 = c1;
                     }
                     else if (HeldComp == -1)
-                        c1 = cHeld[ID];
+                        c1 = cHeld;
                     else if (HeldComp == 1)
-                        c3 = cHeld[ID];
+                        c3 = cHeld;
 
                     //select Colors
                     if (selected)
                     {
-                        c2 = cSelect[ID];
+                        c2 = cSelect;
                         if (HeldComp < -1 || HeldComp > 1)
                         {
-                            c1 = cSelect[ID];
+                            c1 = cSelect;
                             c3 = c1;
                         }
 
                     }
-                    float frac = (float)Math.Max(10 / zsRec.Width, 0.02);
+                    float frac = (float)Math.Max(30 / zsRec.Width, 0.02);
                     var positions = new[] { 0, frac, 1F - frac, 1f };
                     var colors = new Color[] { c1, c2, c2, c3 };
                     g.FillRectangle(colors, positions, zsRec.X, zsRec.Y, zsRec.Width, zsRec.Height);
@@ -128,7 +130,7 @@ namespace SubtitleEditor.SectionDef
                     g.DrawRectangle(
                         c2, 1,
                         zsRec2.X, zsRec2.Y, Math.Max(zsRec2.Width, 1), ZoomBarHeight);
-                    g.FillRectangle(selected ? cSelect[ID] : cNormal[ID], zsRec2.X, zsRec2.Y, zsRec2.Width, ZoomBarHeight);
+                    g.FillRectangle(selected ? cSelect : cNormal, zsRec2.X, zsRec2.Y, zsRec2.Width, ZoomBarHeight);
                 }
                 else if (secType == SectionBarPart.ZoomBar)
                 {
