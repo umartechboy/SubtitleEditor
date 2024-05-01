@@ -27,12 +27,15 @@
             </MudPaper>
         </MudItem>
         <MudItem xs="12">
+            
 		    <MudPaper Class="d-flex object-center mud-width-full">
-                <div style="width: 100%; height: 25vh;">
+                <div style="width: 100%; height: 25vh; position: relative; left: 0px; top: 0px;">
                     <SectionBarWebControl @ref=sectionBarControl
                                           SeekUpdate="SeekUpdate"
+                                          LabelsSectionWidth= "@layersLabelSectionWidth"
                                           RenderPreview="@RenderPreview"
                                           EditClip="EditClipRequest"></SectionBarWebControl>
+                    <div style="position: absolute; width: @(layersLabelSectionWidth)px; height: 100%; left: 0px; top: 0px; border: 1px solid red;"></div>
                 </div>
             </MudPaper>
         </MudItem>
@@ -257,6 +260,7 @@
 
 @inject HttpClient HTTP
 @code{
+    int layersLabelSectionWidth = 300;
     SectionBarWebControl sectionBarControl { get; set; }
     public SKGLView renderPreview { get; set; }
     public string CurrentTime {get;set;} = "";

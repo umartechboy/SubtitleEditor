@@ -32,6 +32,8 @@
 	public EventCallback<Clip> EditClip { get; set; }
 	[Parameter]
 	public EventCallback RenderPreview { get; set; }
+	[Parameter]
+	public int LabelsSectionWidth { get; set; }
 
 	public static Dictionary<Cursors, string> CursorsMap = new Dictionary<Cursors, string>
 	{
@@ -50,6 +52,7 @@
 	protected override async Task OnInitializedAsync()
 	{
 		sectionBar = new SectionBar(()=> skView?.Invalidate(), 6);
+		sectionBar.LabelsSectionWidth = LabelsSectionWidth;
 		sectionBar.SeekPointChanged += async (s, e) => {
 			SeekPosition = e.Value;
 			await SeekUpdate.InvokeAsync(e.Value); 
