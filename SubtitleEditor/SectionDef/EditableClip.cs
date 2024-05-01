@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using MudBlazor;
 using SkiaSharp;
 using System.Drawing;
+using System.Net.Http.Headers;
 using static System.Runtime.InteropServices.JavaScript.JSType;
 using Color = System.Drawing.Color;
 
@@ -562,7 +563,6 @@ namespace SubtitleEditor.SectionDef
 		}
         protected float getLeft(double t)
         {
-            return (float)Math.Sin(2 * Math.PI * 1 * t);
             var ind = (int)(t * 16000);
             if (ind >= left.Length)
                 return 0;
@@ -573,9 +573,9 @@ namespace SubtitleEditor.SectionDef
 		public override void OnPaintBefore(int layerIndex, int layersCount, double min, double max, int Width, int Height, Graphics g, double bMin, double bMax)
 		{
 			base.OnPaintBefore(layerIndex, layersCount, min, max, Width, Height, g, bMin, bMax);
-            //if (Data == null)
-            //    return;
-			float layerHeight = (Height - ZoomBarHeight * 2) / (float)layersCount;
+            if (Data == null)
+                return;
+            float layerHeight = (Height - ZoomBarHeight * 2) / (float)layersCount;
 			var secRec = new RectangleF(
 				(int)Math.Round(((double)Start - min) / (max - min) * Width),
 				ZoomBarHeight * 2 + layerHeight * layerIndex,
@@ -591,10 +591,10 @@ namespace SubtitleEditor.SectionDef
                 tMin = min;
             if (tMax > max)
                 tMax = max;
-			for (double t = 0; t <= tMax - tMin; t += tpp)
+			for (double t = 0; t <= End - Start; t += tpp)
             {
                 var level = Math.Abs(getLeft(t));
-                var xPos = (float)((t + tMin) / tpp + (Start - min) / tpp);
+                var xPos = (float)((t) / tpp + (Start - min) / tpp);
                 levels.Add(new SKPoint(xPos, level));
 			}
             var maxLevel = levels.Max(l => l.Y);
@@ -605,7 +605,9 @@ namespace SubtitleEditor.SectionDef
                 // Normalize Y
                 levels[i] = new SKPoint(levels[i].X, (levels[i].Y - minLevel) / (maxLevel - minLevel)  * layerHeight);
                 // Find yPos
-                float h = levels[i].Y;
+                float h = levels[i].Y - 1;
+                if (h < 1)
+                    h = 1;
                 float yMin = layerStartY + (layerHeight - h) / 2;
                 float yMax = yMin + h;
                 g.DrawLine(Color.White, 1, levels[i].X, yMin, levels[i].X, yMax);
