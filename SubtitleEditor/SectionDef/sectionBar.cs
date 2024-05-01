@@ -617,6 +617,7 @@ namespace SubtitleEditor.SectionDef
         public void OnPaint(SKPaintGLSurfaceEventArgs e)
         {
             var g = Graphics.FromCanvas(e.Surface.Canvas);
+            g.canvas.ClipRect(new SKRect(LabelsSectionWidth, 0, Width, Height));
             float layerHeight = (Height - zsw * 2 - sbh) / (float)Layers.Count;
             // Draw layer labels section
             g.FillRectangle(Color.DarkGray, 0, zsw * 2, LabelsSectionWidth, Height - zsw * 2 - sbh);
@@ -627,6 +628,7 @@ namespace SubtitleEditor.SectionDef
                 g.DrawLine(Color.FromArgb(130, Color.White), 1, 0, zsw * 2 - 1 + layerHeight * layersIndex, LabelsSectionWidth, zsw * 2 + layerHeight * layersIndex);
             }
 
+            g.canvas.ClipRect(new SKRect(LabelsSectionWidth, 0, Width, Height));
             // Draw Layers now
             e.Surface.Canvas.Translate(LabelsSectionWidth, 0);
             try
