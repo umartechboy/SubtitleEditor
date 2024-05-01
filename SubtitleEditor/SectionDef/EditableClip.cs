@@ -492,13 +492,126 @@ namespace SubtitleEditor.SectionDef
     }
 	public class AudioClip : LayerClip
     {
-        public byte[] Data { get; private set; }
-        public AudioClip(double start, double end, byte[] data, string fname) : base(start, end, fname)
+		private double[] left;
+		private double[] right;
+
+		public byte[] Data { get; private set; }// convert two bytes to one double in the range -1 to 1
+        public byte[] WaveData { get; }
+
+        static double bytesToDouble(byte firstByte, byte secondByte)
+		{
+			// convert two bytes to one short (little endian)
+			short s = (short)((secondByte << 8) | firstByte);
+			// convert to range from -1 to (just below) 1
+			return s / 32768.0;
+		}
+		// Returns left and right double arrays. 'right' will be null if sound is mono.
+		public void openWav(out double[] left, out double[] right)
+		{
+            var wav = WaveData;
+            left = null;
+            right = null;
+            if (Data == null)
+                return;
+			// Determine if mono or stereo
+			int channels = wav[22];     // Forget byte 23 as 99.999% of WAVs are 1 or 2 channels
+
+			// Get past all the other sub chunks to get to the data subchunk:
+			int pos = 12;   // First Subchunk ID from 12 to 16
+
+			// Keep iterating until we find the data chunk (i.e. 64 61 74 61 ...... (i.e. 100 97 116 97 in decimal))
+			while (!(wav[pos] == 100 && wav[pos + 1] == 97 && wav[pos + 2] == 116 && wav[pos + 3] == 97))
+			{
+				pos += 4;
+				int chunkSize = wav[pos] + wav[pos + 1] * 256 + wav[pos + 2] * 65536 + wav[pos + 3] * 16777216;
+				pos += 4 + chunkSize;
+			}
+			pos += 8;
+
+			// Pos is now positioned to start of actual sound data.
+			int samples = (wav.Length - pos) / 2;     // 2 bytes per sample (16 bit sound mono)
+			if (channels == 2) samples /= 2;        // 4 bytes per sample (16 bit stereo)
+
+			// Allocate memory (right will be null if only mono sound)
+			left = new double[samples];
+			if (channels == 2) right = new double[samples];
+			else right = null;
+
+			// Write to double array/s:
+			int i = 0;
+			while (pos < Data.Length)
+			{
+				left[i] = bytesToDouble(wav[pos], wav[pos + 1]);
+				pos += 2;
+				if (channels == 2)
+				{
+					right[i] = bytesToDouble(wav[pos], wav[pos + 1]);
+					pos += 2;
+				}
+				i++;
+			}
+		}
+		public AudioClip(double start, double end, byte[] data, string fname, byte[] waveData) : base(start, end, fname)
         {
             Data = data;
+            WaveData = waveData;
+            openWav(out double[] left, out double[] right);
+            this.left = left;
+			this.right = right;
 			this.Color = System.Drawing.Color.FromArgb(30, 168, 150);
 		}
+        protected float getLeft(double t)
+        {
+            return (float)Math.Sin(2 * Math.PI * 1 * t);
+            var ind = (int)(t * 16000);
+            if (ind >= left.Length)
+                return 0;
+            if (ind <= 0)
+                return 0;
+            else return (float)left[ind];
+        }
+		public override void OnPaintBefore(int layerIndex, int layersCount, double min, double max, int Width, int Height, Graphics g, double bMin, double bMax)
+		{
+			base.OnPaintBefore(layerIndex, layersCount, min, max, Width, Height, g, bMin, bMax);
+            //if (Data == null)
+            //    return;
+			float layerHeight = (Height - ZoomBarHeight * 2) / (float)layersCount;
+			var secRec = new RectangleF(
+				(int)Math.Round(((double)Start - min) / (max - min) * Width),
+				ZoomBarHeight * 2 + layerHeight * layerIndex,
+				(int)Math.Round(((double)End - Start) / (max - min) * Width),
+				layerHeight - 1);
+            // get time per pixle
+            float tpp = (float)(1 * (max - min) / Width);
 
+            var levels = new List<SKPoint>();
+            var tMin = Start;
+            var tMax = End;
+            if (tMin < min)
+                tMin = min;
+            if (tMax > max)
+                tMax = max;
+			for (double t = 0; t <= tMax - tMin; t += tpp)
+            {
+                var level = Math.Abs(getLeft(t));
+                var xPos = (float)((t + tMin) / tpp + (Start - min) / tpp);
+                levels.Add(new SKPoint(xPos, level));
+			}
+            var maxLevel = levels.Max(l => l.Y);
+            var minLevel = levels.Min(l => l.Y);
+            for (int i = 0; i < levels.Count; i++)
+            {
+                var layerStartY = ZoomBarHeight * 2 + layerHeight * layerIndex;
+                // Normalize Y
+                levels[i] = new SKPoint(levels[i].X, (levels[i].Y - minLevel) / (maxLevel - minLevel)  * layerHeight);
+                // Find yPos
+                float h = levels[i].Y;
+                float yMin = layerStartY + (layerHeight - h) / 2;
+                float yMax = yMin + h;
+                g.DrawLine(Color.White, 1, levels[i].X, yMin, levels[i].X, yMax);
+            }
+            
+		}
 	}
     public class VideoClip : LayerClip
 	{
@@ -530,6 +643,7 @@ namespace SubtitleEditor.SectionDef
 				canvas.DrawBitmap(bmp, new SKRect(r.Left, r.Top, r.Right, r.Bottom));
 			}
 		}
+        
 	}
     public class PhotoClip : LayerClip
     {
@@ -554,7 +668,22 @@ namespace SubtitleEditor.SectionDef
                 canvas.DrawBitmap(Data, new SKRect(r.Left, r.Top, r.Right, r.Bottom));
             }
         }
-    }
+		public override void OnPaintBefore(int layerIndex, int layersCount, double min, double max, int Width, int Height, Graphics g, double bMin, double bMax)
+		{
+			base.OnPaintBefore(layerIndex, layersCount, min, max, Width, Height, g, bMin, bMax);
+            // Draw overlay image
+            if (Data != null)
+            {
+				float layerHeight = (Height - ZoomBarHeight * 2) / (float)layersCount;
+				var zsRec = new RectangleF(
+					(int)Math.Round(((double)Start - min) / (max - min) * Width) + 1,
+					ZoomBarHeight * 2 + layerHeight * layerIndex + 1,
+					(layerHeight - 3) * Data.Width / Data.Height,
+					layerHeight - 3);
+                g.canvas.DrawBitmap(Data, new SKRect(zsRec.Left, zsRec.Top, zsRec.Right, zsRec.Bottom));
+            }
+		}
+	}
     public class SubtitleClip : LayerClip
     {
         public SubtitleClip(double start, double end, string source) : base(start, end, source)

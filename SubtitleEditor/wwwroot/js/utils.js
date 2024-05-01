@@ -9,4 +9,12 @@
     document.body.removeChild(a);
     window.URL.revokeObjectURL(blobUrl);
 };
-window.
+window.loadWaveFileFromBuffer = async (waveBuffer) => {
+    const wavesurfer = WaveSurfer.create({
+        container: '#waveform',
+        backend: 'MediaElement'
+    });
+
+    const blob = new Blob([waveBuffer], { type: 'audio/wav' });
+    await wavesurfer.loadBlob(blob);
+};

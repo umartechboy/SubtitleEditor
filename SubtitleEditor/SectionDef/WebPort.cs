@@ -43,7 +43,7 @@ namespace SubtitleEditor.SectionDef
     public class Graphics
     {
         private Graphics() { }
-        SKCanvas canvas;
+        public SKCanvas canvas { get; private set; }
         public static Graphics FromCanvas(SKCanvas canvas)
         {
             return new Graphics() { canvas = canvas };
