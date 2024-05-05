@@ -18,3 +18,14 @@ window.loadWaveFileFromBuffer = async (waveBuffer) => {
     const blob = new Blob([waveBuffer], { type: 'audio/wav' });
     await wavesurfer.loadBlob(blob);
 };
+window.updateAudioTime = (audioID, time) => {
+    var elem = document.getElementById(audioID);
+    if(elem)
+        elem.currentTime = time;
+};
+window.getAudioTime = (audioID) => {
+    var elem = document.getElementById(audioID);
+    if (elem)
+        return elem.currentTime;
+    return 0;
+};

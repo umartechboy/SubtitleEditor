@@ -320,7 +320,7 @@ namespace SubtitleEditor.SectionDef
                 // Start of first section on the right is min. if there is no section, max of Start of zoom Bar is max
                 // Width is not same as max. Width is the graphical length.
                 // Stays the same for all layers
-                float layerHeight = (Height - ZoomBarHeight * 2) / (float)layersCount;
+                float layerHeight = (Height - ZoomBarHeight * 2 - sbh) / (float)layersCount;
                 zsRec = new RectangleF(
                     (int)Math.Round(((double)Start - min) / (max - min) * Width),
                     ZoomBarHeight * 2 + layerHeight * layerIndex,
@@ -425,7 +425,7 @@ namespace SubtitleEditor.SectionDef
                     c = Cursors.Default;
                 }
                 // y position correction
-                float layerHeight = (Height - ZoomBarHeight * 2) / (float)layersCount;
+                float layerHeight = (Height - ZoomBarHeight * 2 - sbh) / (float)layersCount;
                 if (e.Y <= ZoomBarHeight * 2 + layerHeight * layerIndex ||
                     e.Y >= ZoomBarHeight * 2 + layerHeight * (layerIndex + 1))
                 {
@@ -542,11 +542,11 @@ namespace SubtitleEditor.SectionDef
 			int i = 0;
 			while (pos < Data.Length)
 			{
-				left[i] = bytesToDouble(wav[pos], wav[pos + 1]);
+				left[i] = Math.Log(bytesToDouble(wav[pos], wav[pos + 1]));
 				pos += 2;
 				if (channels == 2)
 				{
-					right[i] = bytesToDouble(wav[pos], wav[pos + 1]);
+					right[i] = Math.Log(bytesToDouble(wav[pos], wav[pos + 1]));
 					pos += 2;
 				}
 				i++;
@@ -575,7 +575,7 @@ namespace SubtitleEditor.SectionDef
 			base.OnPaintBefore(layerIndex, layersCount, min, max, Width, Height, g, bMin, bMax);
             if (Data == null)
                 return;
-            float layerHeight = (Height - ZoomBarHeight * 2) / (float)layersCount;
+            float layerHeight = (Height - ZoomBarHeight * 2 - sbh) / (float)layersCount;
 			var secRec = new RectangleF(
 				(int)Math.Round(((double)Start - min) / (max - min) * Width),
 				ZoomBarHeight * 2 + layerHeight * layerIndex,
@@ -676,7 +676,7 @@ namespace SubtitleEditor.SectionDef
             // Draw overlay image
             if (Data != null)
             {
-				float layerHeight = (Height - ZoomBarHeight * 2) / (float)layersCount;
+				float layerHeight = (Height - ZoomBarHeight * 2 - sbh) / (float)layersCount;
 				var zsRec = new RectangleF(
 					(int)Math.Round(((double)Start - min) / (max - min) * Width) + 1,
 					ZoomBarHeight * 2 + layerHeight * layerIndex + 1,

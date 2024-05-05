@@ -27,7 +27,7 @@
                                                      IgnorePixelScaling="true"
                                                      OnPaintSurface="async (e) => await OnRenderPaint(e)"
                                                      style="width: 100%; height: calc(70vh - 20px);margin: 0px 0px 0px 0px;"></SkiaSharp.Views.Blazor.SKGLView>
-                    <audio src=@audioSrc controls style="position: absolute; width: 100%; height: 20px; top: calc(100% - 20px); left: 0px;">
+                    <audio @ontimeupdate="onAudioTimeUpdate" id="@audioElementID" src=@audioSrc controls style="position: absolute; width: 100%; height: 20px; top: calc(100% - 20px); left: 0px;">
                         Your browser does not support the audio element.
                     </audio>
                 </div>
@@ -281,6 +281,7 @@
     int layersLabelSectionWidth = 300;
     SectionBarWebControl sectionBarControl { get; set; }
     string audioSrc = "";
+    string audioElementID = "mainAudioElem";
     public SKGLView renderPreview { get; set; }
     public string CurrentTime {get;set;} = "";
     static RenderConfig config;
@@ -314,7 +315,6 @@
         config.SubTitlesFont = new SkiaSharp.SKFont(TypeFaces.First());
         SubtitleEditorFontFamily = config.SubTitlesFont.Typeface.FamilyName;
     }
-
     bool menuOpen;
     int renderRes = 1920;
     bool renderAbort = false;
@@ -338,8 +338,15 @@
     {
         menuOpen = true;
     }
-
-    public void SeekUpdate(double t){
+    
+    async Task onAudioTimeUpdate()
+    {
+        var time = await Runtime.InvokeAsync<double>("window.getAudioTime", audioElementID);
+        sectionBarControl.SetSeek(time);
+        renderPreview.Invalidate();
+    }
+    public async Task SeekUpdate(double t){
+        await Runtime.InvokeVoidAsync("window.updateAudioTime", audioElementID, t);
         CurrentTime = common.timeToString(t);
         renderPreview.Invalidate();
     }
@@ -387,8 +394,8 @@
         if (FFmpegFactory.Runtime == null)
         {
             Console.WriteLine("Get FFMpeg");
-            await FFmpegFactory.Init(Runtime);
             processProgressText = "Downloading FFmpeg";
+            await FFmpegFactory.Init(Runtime);
             StateHasChanged();
             //create an instance
             VideoClipEditor.FFMpeg = FFmpegFactory.CreateFFmpeg();
@@ -526,6 +533,7 @@
 
         whisperMenuOpen = false;
         progressDiscrete = true;
+        processProgressOpen = true;
         StateHasChanged();
         processIsRender = false;
 
@@ -564,9 +572,12 @@
         FFmpegFactory.Progress -= progressUpdate;
 
         var wave = await VideoClipEditor.FFMpeg.ReadFile("output.wav");
-        
+
         var base64Data = Convert.ToBase64String(wave);
         audioSrc = $"data:audio/wav;base64,{base64Data}";
+        sectionBarControl.sectionBar.Layers.Last().Clear();
+        sectionBarControl.sectionBar.Layers.Last().Add(new AudioClip(0, duration, mp3, file.Name, wave));
+        sectionBarControl.sectionBar.ResetMaxTime();
         int totalWords = 0;
         int totalSubs = 0;
         double confidance = 0;
@@ -680,7 +691,6 @@
         if (sectionBarControl.sectionBar.Layers[4].Count <= 0) // Background
             sectionBarControl.sectionBar.Layers[4].Add(new PhotoClip(0, duration));
 
-        sectionBarControl.sectionBar.Layers.Last().Add(new AudioClip(0, duration, mp3, file.Name, wave));
         sectionBarControl.sectionBar.ResetMaxTime();
         Snackbar.Add($"Audio was processed successfully and lyrics where added to the timeline. Total {totalSubs} lyrics containing {totalWords} words exracted with an overall confidance of {confidance}.");
         StateHasChanged();

@@ -94,6 +94,12 @@
 		if (sectionBar != null)
 			sectionBar.OnPaint(e);	
 	}
+	public void SetSeek(double t)
+	{
+		sectionBar.SeekPosition = t;
+		SeekPosition = t; // this is required for render frame
+		Invalidate();
+	}
 	public void ResetMaxTime()
 	{
 		sectionBar.ResetMaxTime();
