@@ -351,45 +351,77 @@
     public async Task SeekUpdate(double t){
         await Runtime.InvokeVoidAsync("window.updateAudioTime", audioElementID, t);
         CurrentTime = common.timeToString(t);
+        await invalidateDisplayBuffer();
         renderPreview.Invalidate();
     }
-    void RenderPreview()
+    async Task RenderPreview()
     {
+        await invalidateDisplayBuffer();
         renderPreview.Invalidate();
     }
-
+    SkiaSharp.SKBitmap? outputBuffer;
+    SkiaSharp.SKCanvas? canvasBuffer;
+    int renderCanvasWidth = 0;
+    int renderCanvasHeight = 0;
     protected async Task OnRenderPaint(SKPaintSurfaceEventArgs e)
     {
-        var canvas = e.Surface.Canvas;
-        canvas.Clear();
-        var width = (float)e.Info.Width;
-        var height = (float)(e.Info.Width / config.AspectRatio);
-        if (height > e.Info.Height)
+        var viewCanvas = e.Surface.Canvas;
+
+        //cache the sizes
+        renderCanvasWidth = e.Info.Width;
+        renderCanvasHeight = e.Info.Height;
+
+        if (outputBuffer == null)
+            return;
+        // draw back
+        viewCanvas.Clear();
+        viewCanvas.DrawBitmap(outputBuffer, 0, 0);
+    }
+    async Task invalidateDisplayBuffer()
+    {
+        var width = (float)renderCanvasWidth;
+        var height = (float)(renderCanvasWidth / config.AspectRatio);
+        if (height > renderCanvasHeight)
         {
-            height = e.Info.Height;
+            height = renderCanvasHeight;
             width = (float)(height * config.AspectRatio);
         }
+        if (width <= 0)
+            return;
+        if (outputBuffer != null)
+        {
+            if (outputBuffer.Width != (int)width || outputBuffer.Height != (int)height)
+                outputBuffer.Dispose();
+            outputBuffer = null;
+        }
+        if (outputBuffer == null)
+        {
+            outputBuffer = new SkiaSharp.SKBitmap((int)width, (int)height);
+            canvasBuffer = new SkiaSharp.SKCanvas(outputBuffer);
+        }
+        var canvas = canvasBuffer;
 
-        canvas.Translate((e.Info.Width - width) / 2, (e.Info.Height - height) / 2);
-        e.Surface.Canvas.DrawRect(0, 0, width, height, new SkiaSharp.SKPaint()
-			{
-				IsStroke = true,
-				StrokeWidth = 2,
-				Color = SkiaSharp.SKColors.Gray
-			});
+        canvas.Clear();
+        canvas.Translate((renderCanvasWidth - width) / 2, (renderCanvasHeight - height) / 2);
+        canvas.DrawRect(0, 0, width, height, new SkiaSharp.SKPaint()
+            {
+                IsStroke = true,
+                StrokeWidth = 2,
+                Color = SkiaSharp.SKColors.Gray
+            });
         float scale = width / 100;
-        e.Surface.Canvas.Scale(scale, scale);
+        canvas.Scale(scale, scale);
         try
         {
 
             config.TargetSize = new SkiaSharp.SKSize() { Width = width, Height = height };
 
             await sectionBarControl.RenderCurrentFrame(
-                e.Surface.Canvas, config);
+                canvas, config);
         }
-        catch (Exception ex){Console.WriteLine("Render Failed: " + ex); }
-        e.Surface.Canvas.Scale(1 / scale, 1 / scale);
-        canvas.Translate(-(e.Info.Width - width) / 2, -(e.Info.Height - height) / 2);
+        catch (Exception ex) { Console.WriteLine("Render Failed: " + ex); }
+        canvas.Scale(1 / scale, 1 / scale);
+        canvas.Translate(-(renderCanvasWidth - width) / 2, -(renderCanvasHeight - height) / 2);
         canvas.ResetMatrix();
     }
 
@@ -819,7 +851,7 @@
     {
         return new MudColor(sk.Red, sk.Green, sk.Blue, sk.Alpha);
     }
-    public void SubtitleEditorOnAChange(SubtitleEditor.Editors.SubtitleClipEditor subtitleEditor)
+    public async Task SubtitleEditorOnAChange(SubtitleEditor.Editors.SubtitleClipEditor subtitleEditor)
     {
 
         if (ClipUnderEditing == null)
@@ -868,6 +900,7 @@
             ClipEditorDurationSS = subtitleEditor.DurationSS;
             ClipEditorDurationFF = subtitleEditor.DurationFF;
             sectionBarControl.Invalidate();
+            await invalidateDisplayBuffer();
             renderPreview.Invalidate();
         }
     }
@@ -879,7 +912,7 @@
     protected SkiaSharp.SKBlendMode GraphicEditorBlendMode { get; set; }
     protected float GraphicEditorXPosition {get; set; }
     protected float GraphicEditorYPosition { get; set; }
-    public void PhotoEditorOnAChange(SubtitleEditor.Editors.PhotoClipEditor photoEditor)
+    public async Task PhotoEditorOnAChange(SubtitleEditor.Editors.PhotoClipEditor photoEditor)
     {
         if (ClipUnderEditing == null)
             return;
@@ -922,6 +955,7 @@
             ClipEditorDurationSS = photoEditor.DurationSS;
             ClipEditorDurationFF = photoEditor.DurationFF;
             sectionBarControl.Invalidate();
+            await invalidateDisplayBuffer();
             renderPreview.Invalidate();
         }
     }
@@ -930,7 +964,7 @@
     // Video Clip Editor
 
     protected HybridSKBitmap[]? VideoEditorData { get; set; }
-    public void VideoEditorOnAChange(SubtitleEditor.Editors.VideoClipEditor videoEditor)
+    public async Task VideoEditorOnAChange(SubtitleEditor.Editors.VideoClipEditor videoEditor)
     {
         if (ClipUnderEditing == null)
             return;
@@ -975,6 +1009,7 @@
             ClipEditorDurationSS = videoEditor.DurationSS;
             ClipEditorDurationFF = videoEditor.DurationFF;
             sectionBarControl.Invalidate();
+            await invalidateDisplayBuffer();
             renderPreview.Invalidate();
         }
     }
