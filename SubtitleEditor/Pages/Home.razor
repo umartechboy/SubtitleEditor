@@ -64,6 +64,7 @@
                     FontFamily="@SubtitleEditorFontFamily"
                     TypeFaces="@TypeFaces"
                     FontSize="@SubtitleEditorFontSize"
+                    BlendMode="ClipBlendMode"
                     YPosition="@SubtitleEditorYPosition"
                     ShadowSize="@SubtitleEditorShadowSize"
                     ShadowDistance="@SubtitleEditorShadowDistance"
@@ -87,7 +88,7 @@
                     SelectedImage="@ClipEditorSource"
                     SelectedImageData="@PhotoEditorData"
                     Size="GraphicEditorSize"
-                    BlendMode="GraphicEditorBlendMode"
+                    BlendMode="ClipBlendMode"
                     XPosition="GraphicEditorXPosition"
                     YPosition="GraphicEditorYPosition"
                     StartingHH="@ClipEditorStartingHH"
@@ -107,7 +108,7 @@
                     SelectedVideo="@ClipEditorSource"
                     SelectedVideoData="@VideoEditorData"
                     Size="GraphicEditorSize"
-                    BlendMode="GraphicEditorBlendMode"
+                    BlendMode="ClipBlendMode"
                     XPosition="GraphicEditorXPosition"
                     YPosition="GraphicEditorYPosition"
                     StartingHH="@ClipEditorStartingHH"
@@ -765,6 +766,7 @@
         if (clip is SubtitleClip)
         {
             ClipEditorSource = ClipUnderEditing.Source;
+            ClipBlendMode = ((SubtitleClip)ClipUnderEditing).BlendMode;
             SubtitleEditorFontFamily = config.SubTitlesFont.Typeface.FamilyName;
             SubtitleEditorFontSize = config.SubTitlesFont.Size;
             SubtitleEditorYPosition = (float)(config.SubtitleLocation.Y * config.AspectRatio);
@@ -789,7 +791,7 @@
             ClipEditorSource = photoClip.Source;
             PhotoEditorData = photoClip.Data;
             GraphicEditorSize = photoClip.Size;
-            GraphicEditorBlendMode = photoClip.BlendMode;
+            ClipBlendMode = photoClip.BlendMode;
             GraphicEditorXPosition = photoClip.X;
             GraphicEditorYPosition = photoClip.Y;
             ClipEditorStartingHH = TimeSpan.FromSeconds(ClipUnderEditing.Start).Hours;
@@ -808,7 +810,7 @@
             ClipEditorSource = videoClip.Source;
             VideoEditorData = videoClip.Data;
             GraphicEditorSize = videoClip.Size;
-            GraphicEditorBlendMode = videoClip.BlendMode;
+            ClipBlendMode = videoClip.BlendMode;
             GraphicEditorXPosition = videoClip.X;
             GraphicEditorYPosition = videoClip.Y;
             ClipEditorStartingHH = TimeSpan.FromSeconds(ClipUnderEditing.Start).Hours;
@@ -859,6 +861,7 @@
         if (ClipUnderEditing is SubtitleClip)
         {
             ClipUnderEditing.Source = subtitleEditor.Text;
+            ((SubtitleClip)ClipUnderEditing).BlendMode = subtitleEditor.BlendMode;
             config.SubTitlesFont = new SkiaSharp.SKFont(TypeFaces.Find(tf => tf.FamilyName == subtitleEditor.FontFamily), subtitleEditor.FontSize);
             config.SubtitleLocation = new SkiaSharp.SKPoint(config.SubtitleLocation.X, subtitleEditor.YPosition / config.AspectRatio);
             config.ShadowSize = subtitleEditor.ShadowSize;
@@ -885,6 +888,7 @@
             // Round 2
             SubtitleEditorFontFamily = config.SubTitlesFont.Typeface.FamilyName;
             SubtitleEditorFontSize = config.SubTitlesFont.Size;
+            ClipBlendMode = subtitleEditor.BlendMode;
             SubtitleEditorYPosition = config.SubtitleLocation.Y * config.AspectRatio;
             SubtitleEditorShadowSize = config.ShadowSize;
             SubtitleEditorShadowDistance = config.ShadowDistance;
@@ -909,7 +913,7 @@
 
     protected SkiaSharp.SKBitmap PhotoEditorData { get; set; }
     protected float GraphicEditorSize { get; set; }
-    protected SkiaSharp.SKBlendMode GraphicEditorBlendMode { get; set; }
+    protected SkiaSharp.SKBlendMode ClipBlendMode { get; set; }
     protected float GraphicEditorXPosition {get; set; }
     protected float GraphicEditorYPosition { get; set; }
     public async Task PhotoEditorOnAChange(SubtitleEditor.Editors.PhotoClipEditor photoEditor)
@@ -922,6 +926,7 @@
             photoClip.Source = photoEditor.SelectedImage;
             photoClip.Data = photoEditor.SelectedImageData;
             photoClip.Size = photoEditor.Size;
+            photoClip.BlendMode = photoEditor.BlendMode;
             photoClip.X = photoEditor.XPosition;
             photoClip.Y = photoEditor.YPosition;
             double duration(double h, double m, double s, double f)
@@ -943,7 +948,7 @@
             ClipEditorSource = photoEditor.SelectedImage;
             PhotoEditorData = photoEditor.SelectedImageData;
             GraphicEditorSize = photoEditor.Size;
-            GraphicEditorBlendMode = photoEditor.BlendMode;
+            ClipBlendMode = photoEditor.BlendMode;
             GraphicEditorXPosition = photoEditor.XPosition;
             GraphicEditorYPosition = photoEditor.YPosition;
             ClipEditorStartingHH = photoEditor.StartingHH;
@@ -975,9 +980,9 @@
             videoClip.Data = videoEditor.SelectedVideoData; 
             sectionBarControl.ResetMaxTime();
             videoClip.Size = videoEditor.Size;
+            videoClip.BlendMode = videoEditor.BlendMode;
             videoClip.X = videoEditor.XPosition;
             videoClip.Y = videoEditor.YPosition;
-            videoClip.BlendMode = videoEditor.BlendMode;
             double duration(double h, double m, double s, double f)
             {
                 return h * 3600 + m * 60 + s + f / 30;
@@ -997,7 +1002,7 @@
             ClipEditorSource = videoEditor.SelectedVideo;
             VideoEditorData = videoEditor.SelectedVideoData;
             GraphicEditorSize = videoEditor.Size;
-            GraphicEditorBlendMode = videoEditor.BlendMode;
+            ClipBlendMode = videoEditor.BlendMode;
             GraphicEditorXPosition = videoEditor.XPosition;
             GraphicEditorYPosition = videoEditor.YPosition;
             ClipEditorStartingHH = videoEditor.StartingHH;

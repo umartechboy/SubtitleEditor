@@ -739,6 +739,7 @@ namespace SubtitleEditor.SectionDef
         {
 			this.Color = System.Drawing.Color.FromArgb(255, 190, 11);
         }
+        public SKBlendMode BlendMode { get; set; } = SKBlendMode.SrcOver;
         void DrawWrapLines(float x, float y, string longLine, float lineLengthLimit, SKCanvas canvas, SKPaint defPaint, RenderConfig config)
         {
             var wrappedStrings = new List<string>();
@@ -821,7 +822,8 @@ namespace SubtitleEditor.SectionDef
                 new SKPaint(config.SubTitlesFont)
                 {
                     Color = config.SubtitleColor.WithAlpha((byte)(255 * opacity)),
-                    IsAntialias = true
+                    IsAntialias = true,
+                    BlendMode = this.BlendMode
                 }, config);
             }
         }
