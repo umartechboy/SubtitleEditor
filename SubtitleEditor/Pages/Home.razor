@@ -278,7 +278,8 @@
 
 @inject HttpClient HTTP
 @code{
-    int layersLabelSectionWidth = 300;
+    // Must be same as hardcoded width in sectionBar untill the resizing glitch is found and resolved.
+    int layersLabelSectionWidth = 200;
     SectionBarWebControl sectionBarControl { get; set; }
     string audioSrc = "";
     string audioElementID = "mainAudioElem";
@@ -376,13 +377,21 @@
 			});
         float scale = width / 100;
         e.Surface.Canvas.Scale(scale, scale);
+        try
+        {
 
-        config.TargetSize = new SkiaSharp.SKSize() { Width = width, Height = height };
+            config.TargetSize = new SkiaSharp.SKSize() { Width = width, Height = height };
 
-        await sectionBarControl.RenderCurrentFrame(
-            e.Surface.Canvas, config);
+            await sectionBarControl.RenderCurrentFrame(
+                e.Surface.Canvas, config);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("Render Failed: " + ex);
+        }
         e.Surface.Canvas.Scale(1 / scale, 1 / scale);
         canvas.Translate(-(e.Info.Width - width) / 2, -(e.Info.Height - height) / 2);
+        canvas.ResetMatrix();
     }
 
     // Common Helpers

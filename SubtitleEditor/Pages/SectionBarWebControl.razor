@@ -52,7 +52,8 @@
 	protected override async Task OnInitializedAsync()
 	{
 		sectionBar = new SectionBar(()=> skView?.Invalidate(), 5);
-		sectionBar.LabelsSectionWidth = LabelsSectionWidth;
+		// LabelsSectionWidth has some glitch with reset bounds. Fixing width.
+		//sectionBar.LabelsSectionWidth = LabelsSectionWidth;
 		sectionBar.SeekPointChanged += async (s, e) => {
 			SeekPosition = e.Value;
 			await SeekUpdate.InvokeAsync(e.Value); 

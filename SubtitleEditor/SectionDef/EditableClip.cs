@@ -628,22 +628,29 @@ namespace SubtitleEditor.SectionDef
 		public float fps { get; set; } = 30;
 		public override async Task RenderAsync(double position, SKCanvas canvas, RenderConfig config)
 		{
-			if (Data != null && position >= Start && position <= End)
-			{
-				var fractionTimeToRender = (position - this.Start) / (End - Start);
-				var indexToRender = (int)Math.Round((Data.Length - 1) * fractionTimeToRender);
+            if (Data != null && position >= Start && position <= End)
+            {
+                var fractionTimeToRender = (position - this.Start) / (End - Start);
+                var indexToRender = (int)Math.Round((Data.Length - 1) * fractionTimeToRender);
 
                 var bmp = await Data[indexToRender].GetSKBimap();
-
+                if (bmp == null)
+                {
+                    Console.WriteLine("bmp null at: " + indexToRender);
+                    await (RenderAsync(position, canvas, config));
+                    return;
+                }
                 float aspect = bmp.Width / (float)bmp.Height;
-				
-				var wid = /* We are gonna force fit */ 100 * (/* User Scale */Size / 100);
-				var hei = wid / aspect;
-				var x = X - wid / 2;
-				var y = Y - hei / 2;
+
+                var wid = /* We are gonna force fit */ 100 * (/* User Scale */Size / 100);
+                var hei = wid / aspect;
+                var x = X - wid / 2;
+                var y = Y - hei / 2;
                 RectangleF r = new RectangleF(x, y, wid, hei);
-				canvas.DrawBitmap(bmp, new SKRect(r.Left, r.Top, r.Right, r.Bottom));
-			}
+                canvas.DrawBitmap(bmp, new SKRect(r.Left, r.Top, r.Right, r.Bottom));
+            }
+            else
+            { }
 		}
         
 	}
@@ -841,9 +848,12 @@ namespace SubtitleEditor.SectionDef
                     var frame = await FFMpeg.ReadFile(FFMpegFile);
                     var bmp = SKBitmap.Decode(frame);
                     Bitmap = bmp;
+                    if (Bitmap == null)
+                        Console.WriteLine("Bitmap Null: " + FFMpegFile);
                 }
                 catch (Exception ex)
                 {
+                    Console.WriteLine("Exception while decoding: " + ex);
                 }
             }
             return Bitmap;
