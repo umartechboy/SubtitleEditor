@@ -135,6 +135,26 @@ namespace SubtitleEditor.SectionDef
                 foreach (var clip in layer)
                     await clip.RenderAsync(position, canvas, config);
         }
+        public void ClearFrameCacheAt(double position)
+        {
+            var ll = new List<List<Clip>>();
+            ll.AddRange(Layers);
+            ll.Reverse();
+            foreach (var layer in ll)
+                foreach (var clip in layer)
+                    if (clip is VideoClip)
+                        ((VideoClip)clip).FreeFrameCache(position);
+        }
+        public async Task CacheCurrentFrameImages()
+        {
+            var ll = new List<List<Clip>>();
+            ll.AddRange(Layers);
+            ll.Reverse();
+            foreach (var layer in ll)
+                foreach (var clip in layer)
+                    if (clip is VideoClip)
+                        await ((VideoClip)clip).CacheFrame(SeekPosition);
+        }
         bool ddess = false, ddss = false, ddsgs = false;
         // save the current hover section in hovSec. Update it on any mouse movements
         int hovSec = -1;
@@ -320,7 +340,9 @@ namespace SubtitleEditor.SectionDef
                 return;
             lastSeekNotificationOn = SeekPosition;
             if (SeekPointChanged != null)
+            {
                 SeekPointChanged(this, new SeekBarEventArgs(seekBar.Start));
+            }
         }
         void DEBUG(string str)
         {

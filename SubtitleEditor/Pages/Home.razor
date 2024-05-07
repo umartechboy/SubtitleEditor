@@ -23,10 +23,10 @@
         <MudItem xs="12" Class="my-2">
             <MudPaper Class="d-flex object-center mud-width-full">
                 <div style="width: 100%; height: 70vh; position: relative; left: 0px; top: 0px;">
-                    <SkiaSharp.Views.Blazor.SKGLView @ref=renderPreview
+                    <SkiaSharp.Views.Blazor.SKCanvasView @ref=renderPreview
                                                      IgnorePixelScaling="true"
                                                      OnPaintSurface="async (e) => await OnRenderPaint(e)"
-                                                     style="width: 100%; height: calc(70vh - 20px);margin: 0px 0px 0px 0px;"></SkiaSharp.Views.Blazor.SKGLView>
+                                                     style="width: 100%; height: calc(70vh - 20px);margin: 0px 0px 0px 0px;"></SkiaSharp.Views.Blazor.SKCanvasView>
                     <audio @ontimeupdate="onAudioTimeUpdate" id="@audioElementID" src=@audioSrc controls style="position: absolute; width: 100%; height: 20px; top: calc(100% - 20px); left: 0px;">
                         Your browser does not support the audio element.
                     </audio>
@@ -87,6 +87,7 @@
                     SelectedImage="@ClipEditorSource"
                     SelectedImageData="@PhotoEditorData"
                     Size="GraphicEditorSize"
+                    BlendMode="GraphicEditorBlendMode"
                     XPosition="GraphicEditorXPosition"
                     YPosition="GraphicEditorYPosition"
                     StartingHH="@ClipEditorStartingHH"
@@ -106,6 +107,7 @@
                     SelectedVideo="@ClipEditorSource"
                     SelectedVideoData="@VideoEditorData"
                     Size="GraphicEditorSize"
+                    BlendMode="GraphicEditorBlendMode"
                     XPosition="GraphicEditorXPosition"
                     YPosition="GraphicEditorYPosition"
                     StartingHH="@ClipEditorStartingHH"
@@ -211,7 +213,7 @@
 
         <MudGrid>
             <MudAppBar Color="Color.Transparent" Fixed="false" Elevation="0" Class="py-4">
-                <MudText Typo="Typo.subtitle2">GPML Model</MudText>
+                <MudText Typo="Typo.subtitle2">GGML Model</MudText>
                 <MudSpacer />
                 <MudSelect @bind-Value="@modelToUse" Variant="Variant.Outlined">
                     <MudSelectItem Value="GgmlType.Tiny">Faster, least accurate</MudSelectItem>
@@ -283,7 +285,7 @@
     SectionBarWebControl sectionBarControl { get; set; }
     string audioSrc = "";
     string audioElementID = "mainAudioElem";
-    public SKGLView renderPreview { get; set; }
+    public SKCanvasView renderPreview { get; set; }
     public string CurrentTime {get;set;} = "";
     static RenderConfig config;
     public List<SkiaSharp.SKTypeface> TypeFaces { get; set; }
@@ -343,7 +345,7 @@
     async Task onAudioTimeUpdate()
     {
         var time = await Runtime.InvokeAsync<double>("window.getAudioTime", audioElementID);
-        sectionBarControl.SetSeek(time);
+        await sectionBarControl.SetSeek(time);
         renderPreview.Invalidate();
     }
     public async Task SeekUpdate(double t){
@@ -356,7 +358,7 @@
         renderPreview.Invalidate();
     }
 
-    protected async Task OnRenderPaint(SKPaintGLSurfaceEventArgs e)
+    protected async Task OnRenderPaint(SKPaintSurfaceEventArgs e)
     {
         var canvas = e.Surface.Canvas;
         canvas.Clear();
@@ -385,10 +387,7 @@
             await sectionBarControl.RenderCurrentFrame(
                 e.Surface.Canvas, config);
         }
-        catch (Exception ex)
-        {
-            Console.WriteLine("Render Failed: " + ex);
-        }
+        catch (Exception ex){Console.WriteLine("Render Failed: " + ex); }
         e.Surface.Canvas.Scale(1 / scale, 1 / scale);
         canvas.Translate(-(e.Info.Width - width) / 2, -(e.Info.Height - height) / 2);
         canvas.ResetMatrix();
@@ -474,7 +473,8 @@
                     var canvas = new SkiaSharp.SKCanvas(skBitmap);
                     var s = skBitmap.Width / 100;
                     canvas.Scale(s, s);
-                    sectionBarControl.RenderCurrentFrameAtT(canvas, t, config);
+                    await sectionBarControl.RenderCurrentFrameAtT(canvas, t, config);
+                    sectionBarControl.sectionBar.ClearFrameCacheAt(t);
                     skBitmap.Encode(ms, SkiaSharp.SKEncodedImageFormat.Jpeg, 100);
                     var buffer = ms.ToArray();
                     var jpgName = "FR" + (fi + 1).ToString().PadLeft(4, '0') + ".jpg";
@@ -585,6 +585,7 @@
         var base64Data = Convert.ToBase64String(wave);
         audioSrc = $"data:audio/wav;base64,{base64Data}";
         sectionBarControl.sectionBar.Layers.Last().Clear();
+        sectionBarControl.sectionBar.Layers[1].Clear();
         sectionBarControl.sectionBar.Layers.Last().Add(new AudioClip(0, duration, mp3, file.Name, wave));
         sectionBarControl.sectionBar.ResetMaxTime();
         int totalWords = 0;
@@ -637,52 +638,50 @@
         }
         else
         {
-            // Console.WriteLine("Downloading Gpml");
-            // if (!whisperFactory.ContainsKey(modelToUse))
-            // {
-            //     processProgressText = "Downloading GPML model";
-            //     StateHasChanged();
-            //     using var memoryStream = new MemoryStream();
-            //     var model = await WhisperGgmlDownloader.GetGgmlModelAsync(modelToUse, QuantizationType.Q5_1);
-            //     await model.CopyToAsync(memoryStream);
-            //     //await model.CopyToAsync(memoryStream);
-            //     whisperFactory[modelToUse] = WhisperFactory.FromBuffer(memoryStream.ToArray());
-            // }
-            // processProgressText = "Extracting Lyrics";
-            // StateHasChanged();
-            // await Task.Delay(100);
-            // processProgress = 0;
-            // Console.WriteLine("Begin whisper");
-            // if (!whisperProcessor.ContainsKey(modelToUse))
-            // {
-            //     whisperProcessor[modelToUse] = whisperFactory[modelToUse].CreateBuilder()
-            //     .WithPrintProgress()
-            //     .WithPrintResults()
-            //     .WithSegmentEventHandler(async (result) =>
-            //     {
-            //         totalWords += result.Text.Split(' ').Length;
-            //         // Add a new clip for this
-            //         var subClip = new SubtitleClip(result.Start.TotalSeconds, result.End.TotalSeconds, result.Text);
-            //         sectionBarControl.sectionBar.Layers[1].Add(subClip);
-            //         sectionBarControl.ResetMaxTime();
+            Console.WriteLine("Downloading Ggml");
+            if (!whisperFactory.ContainsKey(modelToUse))
+            {
+                processProgressText = "Downloading GGML model";
+                StateHasChanged();
+                using var memoryStream = new MemoryStream();
+                var model = await WhisperGgmlDownloader.GetGgmlModelAsync(modelToUse, QuantizationType.Q5_1);
+                await model.CopyToAsync(memoryStream);
+                //await model.CopyToAsync(memoryStream);
+                whisperFactory[modelToUse] = WhisperFactory.FromBuffer(memoryStream.ToArray());
+            }
+            processProgressText = "Extracting Lyrics";
+            StateHasChanged();
+            await Task.Delay(100);
+            processProgress = 0;
+            Console.WriteLine("Begin whisper");
+            if (!whisperProcessor.ContainsKey(modelToUse))
+            {
+                whisperProcessor[modelToUse] = whisperFactory[modelToUse].CreateBuilder()
+                .WithPrintProgress()
+                .WithPrintResults()
+                .WithSegmentEventHandler(async (result) =>
+                {
+                    totalWords += result.Text.Split(' ').Length;
+                    // Add a new clip for this
+                    var subClip = new SubtitleClip(result.Start.TotalSeconds, result.End.TotalSeconds, result.Text);
+                    sectionBarControl.sectionBar.Layers[1].Add(subClip);
+                    sectionBarControl.ResetMaxTime();
 
-            //         processProgressText = (++totalSubs) + ": " + result.Text + " [" + result.Probability + "]";
-            //         confidance += result.Probability;
-            //         Console.WriteLine($"{result.Start}->{result.End}: {processProgressText}");
-            //         sectionBarControl.Invalidate();
-            //         processProgress = (result.End.TotalSeconds / duration) * 100;
-
-            //         StateHasChanged();
-            //         await Task.Delay(200);
-            //     })
-            //     .WithLanguage("en")
-            //     .Build();
-            //     StateHasChanged();
-            //     await Task.Delay(100);
-            // }
+                    processProgressText = (++totalSubs) + ": " + result.Text + " [" + result.Probability + "]";
+                    confidance += result.Probability;
+                    Console.WriteLine($"{result.Start}->{result.End}: {processProgressText}");
+                    sectionBarControl.Invalidate();
+                    processProgress = (result.End.TotalSeconds / duration) * 100;
+                    StateHasChanged();
+                    await Task.Delay(200);
+                })
+                .WithLanguage("en")
+                .Build();
+                StateHasChanged();
+                await Task.Delay(100);
+            }
         }
-        // whisperProcessor[modelToUse]!.Process(new MemoryStream(wave));
-        sectionBarControl.sectionBar.Layers[1].Clear();
+        whisperProcessor[modelToUse]!.Process(new MemoryStream(wave));
         confidance /= totalSubs;
         processProgressText = "All done!";
         processProgress = -1;
@@ -705,7 +704,7 @@
         if (sectionBarControl.sectionBar.Layers[2].Count <= 1) // 
         {
             sectionBarControl.sectionBar.Layers[2].Clear();
-            sectionBarControl.sectionBar.Layers[2].Add(new VideoClip(0, duration)); // Burn
+            sectionBarControl.sectionBar.Layers[2].Add(new VideoClip(20, duration - 20)); // Burn
         }
 
         // Layer 3 -- Background
@@ -720,7 +719,7 @@
         sectionBarControl.sectionBar.ResetMaxTime();
         Snackbar.Add($"Audio was processed successfully and lyrics where added to the timeline. Total {totalSubs} lyrics containing {totalWords} words exracted with an overall confidance of {confidance}.");
         StateHasChanged();
-    // }).Start();
+        // }).Start();
     }
 
     //Common Clip Editing
@@ -758,6 +757,7 @@
             ClipEditorSource = photoClip.Source;
             PhotoEditorData = photoClip.Data;
             GraphicEditorSize = photoClip.Size;
+            GraphicEditorBlendMode = photoClip.BlendMode;
             GraphicEditorXPosition = photoClip.X;
             GraphicEditorYPosition = photoClip.Y;
             ClipEditorStartingHH = TimeSpan.FromSeconds(ClipUnderEditing.Start).Hours;
@@ -776,6 +776,7 @@
             ClipEditorSource = videoClip.Source;
             VideoEditorData = videoClip.Data;
             GraphicEditorSize = videoClip.Size;
+            GraphicEditorBlendMode = videoClip.BlendMode;
             GraphicEditorXPosition = videoClip.X;
             GraphicEditorYPosition = videoClip.Y;
             ClipEditorStartingHH = TimeSpan.FromSeconds(ClipUnderEditing.Start).Hours;
@@ -875,6 +876,7 @@
 
     protected SkiaSharp.SKBitmap PhotoEditorData { get; set; }
     protected float GraphicEditorSize { get; set; }
+    protected SkiaSharp.SKBlendMode GraphicEditorBlendMode { get; set; }
     protected float GraphicEditorXPosition {get; set; }
     protected float GraphicEditorYPosition { get; set; }
     public void PhotoEditorOnAChange(SubtitleEditor.Editors.PhotoClipEditor photoEditor)
@@ -908,6 +910,7 @@
             ClipEditorSource = photoEditor.SelectedImage;
             PhotoEditorData = photoEditor.SelectedImageData;
             GraphicEditorSize = photoEditor.Size;
+            GraphicEditorBlendMode = photoEditor.BlendMode;
             GraphicEditorXPosition = photoEditor.XPosition;
             GraphicEditorYPosition = photoEditor.YPosition;
             ClipEditorStartingHH = photoEditor.StartingHH;
@@ -940,6 +943,7 @@
             videoClip.Size = videoEditor.Size;
             videoClip.X = videoEditor.XPosition;
             videoClip.Y = videoEditor.YPosition;
+            videoClip.BlendMode = videoEditor.BlendMode;
             double duration(double h, double m, double s, double f)
             {
                 return h * 3600 + m * 60 + s + f / 30;
@@ -959,6 +963,7 @@
             ClipEditorSource = videoEditor.SelectedVideo;
             VideoEditorData = videoEditor.SelectedVideoData;
             GraphicEditorSize = videoEditor.Size;
+            GraphicEditorBlendMode = videoEditor.BlendMode;
             GraphicEditorXPosition = videoEditor.XPosition;
             GraphicEditorYPosition = videoEditor.YPosition;
             ClipEditorStartingHH = videoEditor.StartingHH;

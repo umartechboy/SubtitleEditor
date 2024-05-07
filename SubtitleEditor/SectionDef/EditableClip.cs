@@ -623,6 +623,7 @@ namespace SubtitleEditor.SectionDef
 		}
 		public HybridSKBitmap[]? Data { get; set; }
 		public float Size { get; set; } = 100;
+        public SKBlendMode BlendMode { get; set; } = SKBlendMode.SrcOver;
 		public float X { get; set; } = 50;
 		public float Y { get; set; } = 50 * 9 / 16.0F;
 		public float fps { get; set; } = 30;
@@ -647,17 +648,50 @@ namespace SubtitleEditor.SectionDef
                 var x = X - wid / 2;
                 var y = Y - hei / 2;
                 RectangleF r = new RectangleF(x, y, wid, hei);
-                canvas.DrawBitmap(bmp, new SKRect(r.Left, r.Top, r.Right, r.Bottom));
-            }
+                // Create an SKPaint with blend mode
+                using (SKPaint paint = new SKPaint
+                {
+                    BlendMode = this.BlendMode, // or any other Dodge blend mode you prefer
+                    IsAntialias = true // enable antialiasing if needed
+                })
+                {
+                    canvas.DrawBitmap(bmp, new SKRect(r.Left, r.Top, r.Right, r.Bottom), paint);
+                }
+			}
             else
             { }
 		}
-        
-	}
+        public async Task CacheFrame(double position)
+        {
+            if (Data != null && position >= Start && position <= End)
+            {
+                var fractionTimeToRender = (position - this.Start) / (End - Start);
+                var indexToRender = (int)Math.Round((Data.Length - 1) * fractionTimeToRender);
+
+                await Data[indexToRender].GetSKBimap();
+            }
+            else
+            { }
+        }
+        public void FreeFrameCache(double position)
+        {
+            if (Data != null && position >= Start && position <= End)
+            {
+                var fractionTimeToRender = (position - this.Start) / (End - Start);
+                var indexToRender = (int)Math.Round((Data.Length - 1) * fractionTimeToRender);
+
+                Data[indexToRender].FreeALL();
+            }
+            else
+            { }
+        }
+
+    }
     public class PhotoClip : LayerClip
     {
         public SKBitmap Data { get; set; }
         public float Size { get; set; } = 100;
+        public SKBlendMode BlendMode { get; set; } = SKBlendMode.SrcOver;
         public float X { get; set; } = 50;
         public float Y { get; set; } = 50 * 9 / 16.0F;
         public PhotoClip(double start, double end) : base(start, end, "")
@@ -674,7 +708,13 @@ namespace SubtitleEditor.SectionDef
                 var x = X - wid / 2;
                 var y = Y - hei / 2;
                 RectangleF r = new RectangleF(x, y, wid, hei);
-                canvas.DrawBitmap(Data, new SKRect(r.Left, r.Top, r.Right, r.Bottom));
+                // Create an SKPaint with blend mode
+                SKPaint paint = new SKPaint
+                {
+                    BlendMode = this.BlendMode, // or any other Dodge blend mode you prefer
+                    IsAntialias = true // enable antialiasing if needed
+                };
+                canvas.DrawBitmap(Data, new SKRect(r.Left, r.Top, r.Right, r.Bottom), paint);
             }
         }
 		public override void OnPaintBefore(int layerIndex, int layersCount, double min, double max, int Width, int Height, Graphics g, double bMin, double bMax)
@@ -825,19 +865,20 @@ namespace SubtitleEditor.SectionDef
     }
     public class HybridSKBitmap 
     {
-        public SKBitmap? Bitmap { get; set;}
         public string? FFMpegFile { get; set; }
         public FFMPEG? FFMpeg { get; set; }
-        public HybridSKBitmap(string fName, FFMPEG fFMPEG)
+        SKBitmap Bitmap;
+        public HybridSKBitmap(string fName, FFMPEG fFMPEG, SKBitmap data = null)
         {
             FFMpegFile = fName;
             FFMpeg = fFMPEG;
         }
-        public void Free()
+        public void FreeALL()
         {
-            Bitmap?.Dispose();
-            Bitmap = null;
-            GC.Collect();
+            FFMpegFile = ""; // mark that we dont have a file at the back
+			FFMpeg?.UnlinkFile(FFMpegFile);
+            Bitmap.Dispose();
+			GC.Collect();
         }
         public async Task<SKBitmap> GetSKBimap()
         {
@@ -845,11 +886,8 @@ namespace SubtitleEditor.SectionDef
             {
                 try
                 {
-                    var frame = await FFMpeg.ReadFile(FFMpegFile);
-                    var bmp = SKBitmap.Decode(frame);
-                    Bitmap = bmp;
-                    if (Bitmap == null)
-                        Console.WriteLine("Bitmap Null: " + FFMpegFile);
+                    var buffer = await FFMpeg?.ReadFile(FFMpegFile);
+                    Bitmap = SKBitmap.Decode(buffer);
                 }
                 catch (Exception ex)
                 {

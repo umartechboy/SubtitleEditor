@@ -1,5 +1,6 @@
 ﻿@using FFmpegBlazor
 @using MudBlazor.Utilities
+@using SkiaSharp
 @using SubtitleEditor.SectionDef
 @inject IJSRuntime Runtime
 @inject ISnackbar Snackbar
@@ -45,6 +46,15 @@
     <MudItem md="6" Class="py-0">
         <MudSlider T="float" Value="@Size" ValueChanged="@OnSizeChanged" Immediate=true Min="1" Max="300">Size</MudSlider>
     </MudItem>
+    <MudDivider DividerType="DividerType.FullWidth" />
+    <MudItem md="8" Class="py-0">
+        <MudSelect @bind-Value="@BlendMode" TextChanged="@OnATextChanged" Label="Blend Mode" Variant="Variant.Outlined">
+            @foreach (var bm in blendModes)
+            {
+                <MudSelectItem Value="@bm.Key">@bm.Value</MudSelectItem>
+            }
+        </MudSelect>
+    </MudItem>
     
     @if (!string.IsNullOrEmpty(SelectedVideo))
     {
@@ -83,6 +93,21 @@
     public HybridSKBitmap[]? SelectedVideoData { get; set; }
     [Parameter]
     public float Size { get; set; }
+    [Parameter]
+    public SKBlendMode BlendMode { get; set; } = SKBlendMode.SrcOver;
+
+
+    Dictionary<SKBlendMode, string> blendModes = new Dictionary<SKBlendMode, string>
+    {
+    {SKBlendMode.SrcOver,"Normal"},
+    {SKBlendMode.ColorDodge, "Color Dodge"},
+    {SKBlendMode.Multiply, "Multiply"},
+    {SKBlendMode.ColorBurn, "Color Burn"},
+    {SKBlendMode.Difference, "Differnce"},
+    {SKBlendMode.Screen, "Screen"},
+    {SKBlendMode.Exclusion, "Excluion"},
+    {SKBlendMode.Darken, "Darken" }
+    };
     [Parameter]
     public float XPosition { get; set; }
     [Parameter]
@@ -241,7 +266,11 @@
             try
             {
                 var png = videoFileSeed + "_frames_" + i.ToString().PadLeft(4, '0') + ".png";
-                frames.Add(new HybridSKBitmap(png, FFMpeg));
+                SkiaSharp.SKBitmap bmp = null;
+                // var frame = await FFMpeg?.ReadFile(png);
+                // bmp = SkiaSharp.SKBitmap.Decode(frame);
+                // frames.Add(new HybridSKBitmap(png, FFMpeg, bmp));
+                frames.Add(new HybridSKBitmap(png, FFMpeg, bmp));
             }
             catch (Exception ex)
             {

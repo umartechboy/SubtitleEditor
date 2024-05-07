@@ -1,4 +1,5 @@
 ﻿@using MudBlazor.Utilities
+@using SkiaSharp
 @using SubtitleEditor.SectionDef
 <MudGrid>
     <MudItem md="3" Class="py-0">
@@ -42,6 +43,15 @@
     <MudItem md="6" Class="py-0">
         <MudSlider T="float" Value="@Size" ValueChanged="@OnSizeChanged" Immediate=true Min="1" Max="300">Size</MudSlider>
     </MudItem>
+    <MudDivider DividerType="DividerType.FullWidth" />
+    <MudItem md="8" Class="py-0">
+        <MudSelect @bind-Value="@BlendMode" TextChanged="@OnATextChanged" Label="Blend Mode" Variant="Variant.Outlined">
+            @foreach (var bm in blendModes)
+            {
+                <MudSelectItem Value="@bm.Key">@bm.Value</MudSelectItem>
+            }
+        </MudSelect>
+    </MudItem>
     
     @if (!string.IsNullOrEmpty(SelectedImage))
     {
@@ -70,6 +80,21 @@
     public SkiaSharp.SKBitmap SelectedImageData { get; set; }
     [Parameter]
     public float Size { get; set; }
+    [Parameter]
+    public SKBlendMode BlendMode { get; set; } = SKBlendMode.SrcOver;
+
+
+    Dictionary<SKBlendMode, string> blendModes = new Dictionary<SKBlendMode, string>
+    {
+    {SKBlendMode.SrcOver,"Normal"},
+    {SKBlendMode.ColorDodge, "Color Dodge"},
+    {SKBlendMode.Multiply, "Multiply"},
+    {SKBlendMode.ColorBurn, "Color Burn"},
+    {SKBlendMode.Difference, "Differnce"},
+    {SKBlendMode.Screen, "Screen"},
+    {SKBlendMode.Exclusion, "Excluion"},
+    {SKBlendMode.Darken, "Darken" }
+    };
     [Parameter]
     public float XPosition { get; set; }
     [Parameter]

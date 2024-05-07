@@ -40,7 +40,8 @@ namespace SubtitleEditor.SectionDef
         }
     }
     public delegate void MouseEventHandler(object sender, MouseEventArgs e);
-    public class Graphics
+	public delegate Task AsyncMouseEventHandler(object sender, MouseEventArgs e);
+	public class Graphics
     {
         private Graphics() { }
         public SKCanvas canvas { get; private set; }

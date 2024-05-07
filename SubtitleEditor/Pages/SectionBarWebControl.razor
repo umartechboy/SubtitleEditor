@@ -56,6 +56,8 @@
 		//sectionBar.LabelsSectionWidth = LabelsSectionWidth;
 		sectionBar.SeekPointChanged += async (s, e) => {
 			SeekPosition = e.Value;
+			
+			await sectionBar.CacheCurrentFrameImages();
 			await SeekUpdate.InvokeAsync(e.Value); 
 		};
 		sectionBar.OnRequestToRenderPreview += async (s, e) => await RenderPreview.InvokeAsync();
@@ -95,10 +97,12 @@
 		if (sectionBar != null)
 			sectionBar.OnPaint(e);	
 	}
-	public void SetSeek(double t)
+	public async Task SetSeek(double t)
 	{
 		sectionBar.SeekPosition = t;
 		SeekPosition = t; // this is required for render frame
+								// also cache the video frames here.
+		await sectionBar.CacheCurrentFrameImages();
 		Invalidate();
 	}
 	public void ResetMaxTime()
