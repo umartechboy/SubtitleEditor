@@ -51,7 +51,7 @@
 
 	protected override async Task OnInitializedAsync()
 	{
-		sectionBar = new SectionBar(()=> skView?.Invalidate(), 6);
+		sectionBar = new SectionBar(()=> skView?.Invalidate(), 5);
 		sectionBar.LabelsSectionWidth = LabelsSectionWidth;
 		sectionBar.SeekPointChanged += async (s, e) => {
 			SeekPosition = e.Value;

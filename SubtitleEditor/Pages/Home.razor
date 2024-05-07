@@ -338,7 +338,7 @@
     {
         menuOpen = true;
     }
-    
+
     async Task onAudioTimeUpdate()
     {
         var time = await Runtime.InvokeAsync<double>("window.getAudioTime", audioElementID);
@@ -628,69 +628,86 @@
         }
         else
         {
-            Console.WriteLine("Downloading Gpml");
-            if (!whisperFactory.ContainsKey(modelToUse))
-            {
-                processProgressText = "Downloading GPML model";
-                StateHasChanged();
-                using var memoryStream = new MemoryStream();
-                var model = await WhisperGgmlDownloader.GetGgmlModelAsync(modelToUse, QuantizationType.Q5_1);
-                await model.CopyToAsync(memoryStream);
-                //await model.CopyToAsync(memoryStream);
-                whisperFactory[modelToUse] = WhisperFactory.FromBuffer(memoryStream.ToArray());
-            }
-            processProgressText = "Extracting Lyrics";
-            StateHasChanged();
-            await Task.Delay(100);
-            processProgress = 0;
-            Console.WriteLine("Begin whisper");
-            if (!whisperProcessor.ContainsKey(modelToUse))
-            {
-                whisperProcessor[modelToUse] = whisperFactory[modelToUse].CreateBuilder()
-                .WithPrintProgress()
-                .WithPrintResults()
-                .WithSegmentEventHandler(async (result) =>
-                {
-                    totalWords += result.Text.Split(' ').Length;
-                    // Add a new clip for this
-                    var subClip = new SubtitleClip(result.Start.TotalSeconds, result.End.TotalSeconds, result.Text);
-                    sectionBarControl.sectionBar.Layers[2].Add(subClip);
-                    sectionBarControl.ResetMaxTime();
+            // Console.WriteLine("Downloading Gpml");
+            // if (!whisperFactory.ContainsKey(modelToUse))
+            // {
+            //     processProgressText = "Downloading GPML model";
+            //     StateHasChanged();
+            //     using var memoryStream = new MemoryStream();
+            //     var model = await WhisperGgmlDownloader.GetGgmlModelAsync(modelToUse, QuantizationType.Q5_1);
+            //     await model.CopyToAsync(memoryStream);
+            //     //await model.CopyToAsync(memoryStream);
+            //     whisperFactory[modelToUse] = WhisperFactory.FromBuffer(memoryStream.ToArray());
+            // }
+            // processProgressText = "Extracting Lyrics";
+            // StateHasChanged();
+            // await Task.Delay(100);
+            // processProgress = 0;
+            // Console.WriteLine("Begin whisper");
+            // if (!whisperProcessor.ContainsKey(modelToUse))
+            // {
+            //     whisperProcessor[modelToUse] = whisperFactory[modelToUse].CreateBuilder()
+            //     .WithPrintProgress()
+            //     .WithPrintResults()
+            //     .WithSegmentEventHandler(async (result) =>
+            //     {
+            //         totalWords += result.Text.Split(' ').Length;
+            //         // Add a new clip for this
+            //         var subClip = new SubtitleClip(result.Start.TotalSeconds, result.End.TotalSeconds, result.Text);
+            //         sectionBarControl.sectionBar.Layers[1].Add(subClip);
+            //         sectionBarControl.ResetMaxTime();
 
-                    processProgressText = (++totalSubs) + ": " + result.Text + " [" + result.Probability + "]";
-                    confidance += result.Probability;
-                    Console.WriteLine($"{result.Start}->{result.End}: {processProgressText}");
-                    sectionBarControl.Invalidate();
-                    processProgress = (result.End.TotalSeconds / duration) * 100;
+            //         processProgressText = (++totalSubs) + ": " + result.Text + " [" + result.Probability + "]";
+            //         confidance += result.Probability;
+            //         Console.WriteLine($"{result.Start}->{result.End}: {processProgressText}");
+            //         sectionBarControl.Invalidate();
+            //         processProgress = (result.End.TotalSeconds / duration) * 100;
 
-                    StateHasChanged();
-                    await Task.Delay(200);
-                })
-                .WithLanguage("en")
-                .Build();
-                StateHasChanged();
-                await Task.Delay(100);
-            }
+            //         StateHasChanged();
+            //         await Task.Delay(200);
+            //     })
+            //     .WithLanguage("en")
+            //     .Build();
+            //     StateHasChanged();
+            //     await Task.Delay(100);
+            // }
         }
-        sectionBarControl.sectionBar.Layers[2].Clear();
-        whisperProcessor[modelToUse]!.Process(new MemoryStream(wave));
+        // whisperProcessor[modelToUse]!.Process(new MemoryStream(wave));
+        sectionBarControl.sectionBar.Layers[1].Clear();
         confidance /= totalSubs;
         processProgressText = "All done!";
         processProgress = -1;
-        if (sectionBarControl.sectionBar.Layers[0].Count <= 0) // Intro/Outro
+        // Layer Last and 1 are for audio and subs
+
+
+
+        // Layer 0 -- Intro, Outro, Logo
+        if (sectionBarControl.sectionBar.Layers[0].Count <= 1) // Intro/Outro/Logo
         {
+            sectionBarControl.sectionBar.Layers[0].Clear();
             sectionBarControl.sectionBar.Layers[0].Add(new VideoClip(0, 20)); // intro
-            sectionBarControl.sectionBar.Layers[0].Add(new VideoClip(duration - 20, duration)); // intro
+            sectionBarControl.sectionBar.Layers[0].Add(new VideoClip(duration - 20, duration)); // Outro
+            sectionBarControl.sectionBar.Layers[0].Add(new VideoClip(20, duration - 20)); // Logo
         }
-        if (sectionBarControl.sectionBar.Layers[1].Count <= 0) // Logo
-            sectionBarControl.sectionBar.Layers[1].Add(new VideoClip(0, duration)); // intro
+        // Layer 1 -- Subs
+        // Already Done
 
-        if (sectionBarControl.sectionBar.Layers[3].Count <= 0) // Background 1
-            sectionBarControl.sectionBar.Layers[3].Add(new VideoClip(0, duration));
+        // Layer 2 -- Burn
+        if (sectionBarControl.sectionBar.Layers[2].Count <= 1) // 
+        {
+            sectionBarControl.sectionBar.Layers[2].Clear();
+            sectionBarControl.sectionBar.Layers[2].Add(new VideoClip(0, duration)); // Burn
+        }
 
-        if (sectionBarControl.sectionBar.Layers[4].Count <= 0) // Background
-            sectionBarControl.sectionBar.Layers[4].Add(new PhotoClip(0, duration));
+        // Layer 3 -- Background
+        if (sectionBarControl.sectionBar.Layers[3].Count <= 1) // Background 1
+        {
+            sectionBarControl.sectionBar.Layers[3].Clear();
+            sectionBarControl.sectionBar.Layers[3].Add(new PhotoClip(0, duration)); // Background
+        }
 
+        // Layer Last -- Audio
+        // Already Done
         sectionBarControl.sectionBar.ResetMaxTime();
         Snackbar.Add($"Audio was processed successfully and lyrics where added to the timeline. Total {totalSubs} lyrics containing {totalWords} words exracted with an overall confidance of {confidance}.");
         StateHasChanged();
