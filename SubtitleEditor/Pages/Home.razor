@@ -111,6 +111,7 @@
                     SelectedVideoData="@VideoEditorData"
                     Size="GraphicEditorSize"
                     BlendMode="ClipEditorBlendMode"
+                    StretchingMode="VideoEditorStretchingMode"
                     Opacity="ClipEditorOpacity"
                     XPosition="GraphicEditorXPosition"
                     YPosition="GraphicEditorYPosition"
@@ -820,6 +821,7 @@
             VideoEditorData = videoClip.Data;
             GraphicEditorSize = videoClip.Size;
             ClipEditorBlendMode = videoClip.BlendMode;
+            VideoEditorStretchingMode = videoClip.StretchingMode;
             ClipEditorOpacity = videoClip.Opacity;
             GraphicEditorXPosition = videoClip.X;
             GraphicEditorYPosition = videoClip.Y;
@@ -855,6 +857,7 @@
     double ClipEditorDurationSS {get;set;}
     double ClipEditorDurationFF { get; set; }
     protected SkiaSharp.SKBlendMode ClipEditorBlendMode { get; set; }
+    
     protected int ClipEditorOpacity { get; set; }
 
     SkiaSharp.SKColor MudColorToSK(MudColor mud)
@@ -982,7 +985,7 @@
 
 
     // Video Clip Editor
-
+    protected VideoClipEditor.StretchingModes VideoEditorStretchingMode { get; set; }
     protected HybridSKBitmap[]? VideoEditorData { get; set; }
     public async Task VideoEditorOnAChange(SubtitleEditor.Editors.VideoClipEditor videoEditor)
     {
@@ -996,6 +999,7 @@
             sectionBarControl.ResetMaxTime();
             videoClip.Size = videoEditor.Size;
             videoClip.BlendMode = videoEditor.BlendMode;
+            videoClip.StretchingMode = videoEditor.StretchingMode;
             videoClip.Opacity = videoEditor.Opacity;
             videoClip.X = videoEditor.XPosition;
             videoClip.Y = videoEditor.YPosition;
@@ -1019,6 +1023,7 @@
             VideoEditorData = videoEditor.SelectedVideoData;
             GraphicEditorSize = videoEditor.Size;
             ClipEditorBlendMode = videoEditor.BlendMode;
+            VideoEditorStretchingMode = videoEditor.StretchingMode;
             ClipEditorOpacity = videoEditor.Opacity;
             GraphicEditorXPosition = videoEditor.XPosition;
             GraphicEditorYPosition = videoEditor.YPosition;

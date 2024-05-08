@@ -2,6 +2,8 @@
 using Microsoft.AspNetCore.Authorization;
 using MudBlazor;
 using SkiaSharp;
+using SubtitleEditor.Editors;
+using SubtitleEditor.Loaders;
 using System.Collections;
 using System.Drawing;
 using System.Net.Http.Headers;
@@ -625,17 +627,53 @@ namespace SubtitleEditor.SectionDef
 		public HybridSKBitmap[]? Data { get; set; }
 		public float Size { get; set; } = 100;
         public SKBlendMode BlendMode { get; set; } = SKBlendMode.SrcOver;
+        public VideoClipEditor.StretchingModes StretchingMode { get; set; } = VideoClipEditor.StretchingModes.Clip;
         public int Opacity { get; set; } = 255;
         public float X { get; set; } = 50;
 		public float Y { get; set; } = 50 * 9 / 16.0F;
 		public float fps { get; set; } = 30;
+        int getIndex(double position)
+        {
+            if (!(Data != null && position >= Start && position <= End))
+                return -1;
+            if (Data.Length == 0)
+                return -1;
+            if (StretchingMode == VideoClipEditor.StretchingModes.Clip)
+            {
+                var relPos = position - Start;
+                var fps = 30;
+                int index = (int)(relPos * fps);
+                if (index >= 0 && index < Data.Length)
+                    return index;
+                return -1;
+            }
+            else if (StretchingMode == VideoClipEditor.StretchingModes.Stretch)
+            {
+                var fractionTimeToRender = (position - this.Start) / (End - Start);
+                var index = (int)Math.Round((Data.Length - 1) * fractionTimeToRender);
+                if (index >= 0 && index < Data.Length)
+                    return index;
+                return -1;
+            }
+            else // if (StretchingMode == VideoClipEditor.StretchingModes.Loop)
+            {
+                var relPos = position - Start;
+                var fps = 30;
+                int index = (int)(relPos * fps);
+                if (index < 0) 
+                    return -1;
+                while (index >= Data.Length)
+                    return index -= Data.Length;
+                return index;
+            }
+        }
 		public override async Task RenderAsync(double position, SKCanvas canvas, RenderConfig config)
 		{
             if (Data != null && position >= Start && position <= End)
             {
-                var fractionTimeToRender = (position - this.Start) / (End - Start);
-                var indexToRender = (int)Math.Round((Data.Length - 1) * fractionTimeToRender);
-
+                var indexToRender = getIndex(position);
+                if (indexToRender < 0) // cant render
+                    return;
                 var bmp = await Data[indexToRender].GetSKBimap();
                 if (bmp == null)
                 {
@@ -688,7 +726,25 @@ namespace SubtitleEditor.SectionDef
             else
             { }
         }
-
+        //public override void OnPaintBefore(int layerIndex, int layersCount, double min, double max, int Width, int Height, Graphics g, double bMin, double bMax)
+        //{
+        //    base.OnPaintBefore(layerIndex, layersCount, min, max, Width, Height, g, bMin, bMax);
+        //    // Draw overlay images
+        //    if (Data != null)
+        //    {
+        //        float layerHeight = (Height - ZoomBarHeight * 2 - sbh) / (float)layersCount;
+        //        var p
+        //        for (int x0 = 0; ;)
+        //        {
+        //            var zsRec = new RectangleF(
+        //                (int)Math.Round(((double)Start - min) / (max - min) * Width) + 1,
+        //                ZoomBarHeight * 2 + layerHeight * layerIndex + 1,
+        //                (layerHeight - 3) * Data.Width / Data.Height,
+        //                layerHeight - 3);
+        //            g.canvas.DrawBitmap(Data, new SKRect(zsRec.Left, zsRec.Top, zsRec.Right, zsRec.Bottom));
+        //        }
+        //    }
+        //}
     }
     public class PhotoClip : LayerClip
     {

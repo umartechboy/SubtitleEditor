@@ -58,6 +58,15 @@
     <MudItem md="6" Class="py-0">
         <MudSlider T="int" Value="@Opacity" ValueChanged="@OnOpacityChanged" Immediate=true Min="0" Max="255">Opacity</MudSlider>
     </MudItem>
+
+    <MudItem md="6" Class="py-0">
+        <MudSelect @bind-Value="@StretchingMode" TextChanged="@OnATextChanged" Label="Blend Mode" Variant="Variant.Outlined">
+            @foreach (var sm in stretchingModes)
+            {
+                <MudSelectItem Value="@sm.Key">@sm.Value</MudSelectItem>
+            }
+        </MudSelect>
+    </MudItem>
     
     @if (!string.IsNullOrEmpty(SelectedVideo))
     {
@@ -98,6 +107,8 @@
     public float Size { get; set; }
     [Parameter]
     public SKBlendMode BlendMode { get; set; } = SKBlendMode.SrcOver;
+    [Parameter]
+    public StretchingModes StretchingMode { get; set; } = StretchingModes.Clip;
     [Parameter]
     public int Opacity { get; set; } = 255;
     [Parameter]
@@ -168,6 +179,18 @@
     {SKBlendMode.Screen, "Screen"},
     {SKBlendMode.Exclusion, "Excluion"},
     {SKBlendMode.Darken, "Darken" }
+    }; 
+    public enum StretchingModes
+    {
+        Clip,
+        Stretch,
+        Loop
+    }
+    Dictionary<StretchingModes, string> stretchingModes = new Dictionary<StretchingModes, string>
+    {
+    {StretchingModes.Clip,"Clip"},
+    {StretchingModes.Stretch, "Stretch"},
+    {StretchingModes.Loop, "Loop"},
     };
     private async Task OnOpacityChanged(int value) // Ensure correct casing (OnValueChanged)
     {
