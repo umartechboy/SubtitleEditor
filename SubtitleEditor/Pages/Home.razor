@@ -350,6 +350,7 @@
     {
         var time = await Runtime.InvokeAsync<double>("window.getAudioTime", audioElementID);
         await sectionBarControl.SetSeek(time);
+        await invalidateDisplayBuffer();
         renderPreview.Invalidate();
     }
     public async Task SeekUpdate(double t){
@@ -505,7 +506,7 @@
             {
                 using (var ms = new MemoryStream())
                 {
-
+                    Console.WriteLine($"Render @{fi} ({t}s)");
                     var canvas = new SkiaSharp.SKCanvas(skBitmap);
                     var s = skBitmap.Width / 100;
                     canvas.Scale(s, s);
@@ -527,19 +528,22 @@
         processProgress = 0;
         processProgressText = "Encoding video";
         StateHasChanged();
-        var fName = "output.mp4";
+        var fName = "renderOutput.mp4";
         // Add audio if we have it
         var audioClipLayer = sectionBarControl.sectionBar.Layers.Find(l => l.Any(c => c is AudioClip));
         var audioClip = audioClipLayer?.Find(c => c is AudioClip);
         var args = new List<string>();
 
-        if (audioClip!= null){
-            VideoClipEditor.FFMpeg.WriteFile(audioClip.Source, ((AudioClip)audioClip).Data);
-            args.Add("-i"); args.Add(audioClip.Source);
-            var duration = (TimeSpan.FromSeconds(audioClip.End) - TimeSpan.FromSeconds(audioClip.Start)).ToString(@"hh\:mm\:ss");
-            args.Add("-itsoffset"); args.Add(duration);
-            args.Add("-c:a"); args.Add("libfdk_aac");
-            args.Add("-b:a"); args.Add(renderQuality == "medium" ? "160k" : (renderQuality == "ultrafast" ? "96k" : "192k"));
+        if (audioClip != null){
+            if (audioClip.Source != "")
+            {
+                VideoClipEditor.FFMpeg.WriteFile(audioClip.Source, ((AudioClip)audioClip).Data);
+                args.Add("-i"); args.Add(audioClip.Source);
+                var duration = (TimeSpan.FromSeconds(audioClip.End) - TimeSpan.FromSeconds(audioClip.Start)).ToString(@"hh\:mm\:ss");
+                args.Add("-itsoffset"); args.Add(duration);
+                args.Add("-c:a"); args.Add("libfdk_aac");
+                args.Add("-b:a"); args.Add(renderQuality == "medium" ? "160k" : (renderQuality == "ultrafast" ? "96k" : "192k"));
+            }
         }
         args.AddRange(new List<string>(new string[] { "-framerate", "30", "-r", "30", "-i", "FR%04d.jpg", "-c:v", "libx264", "-crf", "18", "-preset", renderQuality, fName }));
 

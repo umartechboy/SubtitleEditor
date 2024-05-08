@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Authorization;
 using MudBlazor;
 using SkiaSharp;
+using System.Collections;
 using System.Drawing;
 using System.Net.Http.Headers;
 using static System.Runtime.InteropServices.JavaScript.JSType;
@@ -884,9 +885,16 @@ namespace SubtitleEditor.SectionDef
         }
         public void FreeALL()
         {
-            FFMpegFile = ""; // mark that we dont have a file at the back
-			FFMpeg?.UnlinkFile(FFMpegFile);
-            Bitmap.Dispose();
+            //if (FFMpegFile != "")
+            //{
+            //    FFMpegFile = ""; // mark that we dont have a file at the back
+            //    FFMpeg?.UnlinkFile(FFMpegFile);
+            //}
+            if (Bitmap != null)
+            {
+                Bitmap.Dispose();
+                Bitmap = null;
+            }
 			GC.Collect();
         }
         public async Task<SKBitmap> GetSKBimap()
@@ -895,6 +903,7 @@ namespace SubtitleEditor.SectionDef
             {
                 try
                 {
+                    Console.WriteLine("Get SKBitmap for: " + FFMpegFile);
                     var buffer = await FFMpeg?.ReadFile(FFMpegFile);
                     Bitmap = SKBitmap.Decode(buffer);
                 }
