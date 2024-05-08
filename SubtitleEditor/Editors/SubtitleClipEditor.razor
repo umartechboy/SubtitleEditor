@@ -83,13 +83,16 @@
         <MudNumericField @bind-Value="@Overlap" TextChanged="@OnATextChanged" Label="Fade In/Out" Immediate="true" Variant="Variant.Filled" Min="0.0" Max="10" />
     </MudItem>
     <MudDivider DividerType="DividerType.FullWidth" />
-    <MudItem md="8" Class="py-0">
+    <MudItem md="6" Class="py-0">
         <MudSelect @bind-Value="@BlendMode" TextChanged="@OnATextChanged" Label="Blend Mode" Variant="Variant.Outlined">
             @foreach (var bm in blendModes)
             {
                 <MudSelectItem Value="@bm.Key">@bm.Value</MudSelectItem>
             }
         </MudSelect>
+    </MudItem>
+    <MudItem md="6" Class="py-0">
+        <MudSlider T="int" Value="@Opacity" ValueChanged="@OnOpacityChanged" Immediate=true Min="0" Max="255">Opacity</MudSlider>
     </MudItem>
 </MudGrid>
 @inject ISnackbar Snackbar
@@ -103,6 +106,8 @@
     public float FontSize { get; set; }
     [Parameter]
     public SKBlendMode BlendMode { get; set; } = SKBlendMode.SrcOver;
+    [Parameter]
+    public int Opacity { get; set; } = 255;
     [Parameter]
     public float ShadowSize { get; set; }
     [Parameter]
@@ -148,6 +153,11 @@
     {SKBlendMode.Exclusion, "Excluion"},
     {SKBlendMode.Darken, "Darken" }
     };
+    private async Task OnOpacityChanged(int value) // Ensure correct casing (OnValueChanged)
+    {
+        Opacity = value;
+        await OnAChange.InvokeAsync(this);
+    }
 
     protected async Task OnATextChanged(string d)
     {

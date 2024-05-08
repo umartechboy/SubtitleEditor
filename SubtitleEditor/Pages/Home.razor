@@ -23,10 +23,10 @@
         <MudItem xs="12" Class="my-2">
             <MudPaper Class="d-flex object-center mud-width-full">
                 <div style="width: 100%; height: 70vh; position: relative; left: 0px; top: 0px;">
-                    <SkiaSharp.Views.Blazor.SKCanvasView @ref=renderPreview
+                    <SkiaSharp.Views.Blazor.SKGLView @ref=renderPreview
                                                      IgnorePixelScaling="true"
                                                      OnPaintSurface="async (e) => await OnRenderPaint(e)"
-                                                     style="width: 100%; height: calc(70vh - 20px);margin: 0px 0px 0px 0px;"></SkiaSharp.Views.Blazor.SKCanvasView>
+                                                     style="width: 100%; height: calc(70vh - 20px);margin: 0px 0px 0px 0px;"></SkiaSharp.Views.Blazor.SKGLView>
                     <audio @ontimeupdate="onAudioTimeUpdate" id="@audioElementID" src=@audioSrc controls style="position: absolute; width: 100%; height: 20px; top: calc(100% - 20px); left: 0px;">
                         Your browser does not support the audio element.
                     </audio>
@@ -64,7 +64,8 @@
                     FontFamily="@SubtitleEditorFontFamily"
                     TypeFaces="@TypeFaces"
                     FontSize="@SubtitleEditorFontSize"
-                    BlendMode="ClipBlendMode"
+                    BlendMode="ClipEditorBlendMode"
+                    Opacity="ClipEditorOpacity"
                     YPosition="@SubtitleEditorYPosition"
                     ShadowSize="@SubtitleEditorShadowSize"
                     ShadowDistance="@SubtitleEditorShadowDistance"
@@ -88,7 +89,8 @@
                     SelectedImage="@ClipEditorSource"
                     SelectedImageData="@PhotoEditorData"
                     Size="GraphicEditorSize"
-                    BlendMode="ClipBlendMode"
+                    BlendMode="ClipEditorBlendMode"
+                    Opacity="ClipEditorOpacity"
                     XPosition="GraphicEditorXPosition"
                     YPosition="GraphicEditorYPosition"
                     StartingHH="@ClipEditorStartingHH"
@@ -108,7 +110,8 @@
                     SelectedVideo="@ClipEditorSource"
                     SelectedVideoData="@VideoEditorData"
                     Size="GraphicEditorSize"
-                    BlendMode="ClipBlendMode"
+                    BlendMode="ClipEditorBlendMode"
+                    Opacity="ClipEditorOpacity"
                     XPosition="GraphicEditorXPosition"
                     YPosition="GraphicEditorYPosition"
                     StartingHH="@ClipEditorStartingHH"
@@ -286,7 +289,7 @@
     SectionBarWebControl sectionBarControl { get; set; }
     string audioSrc = "";
     string audioElementID = "mainAudioElem";
-    public SKCanvasView renderPreview { get; set; }
+    public SKGLView renderPreview { get; set; }
     public string CurrentTime {get;set;} = "";
     static RenderConfig config;
     public List<SkiaSharp.SKTypeface> TypeFaces { get; set; }
@@ -364,7 +367,7 @@
     SkiaSharp.SKCanvas? canvasBuffer;
     int renderCanvasWidth = 0;
     int renderCanvasHeight = 0;
-    protected async Task OnRenderPaint(SKPaintSurfaceEventArgs e)
+    protected async Task OnRenderPaint(SKPaintGLSurfaceEventArgs e)
     {
         var viewCanvas = e.Surface.Canvas;
 
@@ -766,7 +769,8 @@
         if (clip is SubtitleClip)
         {
             ClipEditorSource = ClipUnderEditing.Source;
-            ClipBlendMode = ((SubtitleClip)ClipUnderEditing).BlendMode;
+            ClipEditorBlendMode = ((SubtitleClip)ClipUnderEditing).BlendMode;
+            ClipEditorOpacity = ((SubtitleClip)ClipUnderEditing).Opacity;
             SubtitleEditorFontFamily = config.SubTitlesFont.Typeface.FamilyName;
             SubtitleEditorFontSize = config.SubTitlesFont.Size;
             SubtitleEditorYPosition = (float)(config.SubtitleLocation.Y * config.AspectRatio);
@@ -791,7 +795,8 @@
             ClipEditorSource = photoClip.Source;
             PhotoEditorData = photoClip.Data;
             GraphicEditorSize = photoClip.Size;
-            ClipBlendMode = photoClip.BlendMode;
+            ClipEditorBlendMode = photoClip.BlendMode;
+            ClipEditorOpacity = photoClip.Opacity;
             GraphicEditorXPosition = photoClip.X;
             GraphicEditorYPosition = photoClip.Y;
             ClipEditorStartingHH = TimeSpan.FromSeconds(ClipUnderEditing.Start).Hours;
@@ -810,7 +815,8 @@
             ClipEditorSource = videoClip.Source;
             VideoEditorData = videoClip.Data;
             GraphicEditorSize = videoClip.Size;
-            ClipBlendMode = videoClip.BlendMode;
+            ClipEditorBlendMode = videoClip.BlendMode;
+            ClipEditorOpacity = videoClip.Opacity;
             GraphicEditorXPosition = videoClip.X;
             GraphicEditorYPosition = videoClip.Y;
             ClipEditorStartingHH = TimeSpan.FromSeconds(ClipUnderEditing.Start).Hours;
@@ -844,6 +850,8 @@
     double ClipEditorDurationMM {get;set;}
     double ClipEditorDurationSS {get;set;}
     double ClipEditorDurationFF { get; set; }
+    protected SkiaSharp.SKBlendMode ClipEditorBlendMode { get; set; }
+    protected int ClipEditorOpacity { get; set; }
 
     SkiaSharp.SKColor MudColorToSK(MudColor mud)
     {
@@ -862,6 +870,7 @@
         {
             ClipUnderEditing.Source = subtitleEditor.Text;
             ((SubtitleClip)ClipUnderEditing).BlendMode = subtitleEditor.BlendMode;
+            ((SubtitleClip)ClipUnderEditing).Opacity = subtitleEditor.Opacity;
             config.SubTitlesFont = new SkiaSharp.SKFont(TypeFaces.Find(tf => tf.FamilyName == subtitleEditor.FontFamily), subtitleEditor.FontSize);
             config.SubtitleLocation = new SkiaSharp.SKPoint(config.SubtitleLocation.X, subtitleEditor.YPosition / config.AspectRatio);
             config.ShadowSize = subtitleEditor.ShadowSize;
@@ -888,7 +897,8 @@
             // Round 2
             SubtitleEditorFontFamily = config.SubTitlesFont.Typeface.FamilyName;
             SubtitleEditorFontSize = config.SubTitlesFont.Size;
-            ClipBlendMode = subtitleEditor.BlendMode;
+            ClipEditorBlendMode = subtitleEditor.BlendMode;
+            ClipEditorOpacity = subtitleEditor.Opacity;
             SubtitleEditorYPosition = config.SubtitleLocation.Y * config.AspectRatio;
             SubtitleEditorShadowSize = config.ShadowSize;
             SubtitleEditorShadowDistance = config.ShadowDistance;
@@ -913,7 +923,6 @@
 
     protected SkiaSharp.SKBitmap PhotoEditorData { get; set; }
     protected float GraphicEditorSize { get; set; }
-    protected SkiaSharp.SKBlendMode ClipBlendMode { get; set; }
     protected float GraphicEditorXPosition {get; set; }
     protected float GraphicEditorYPosition { get; set; }
     public async Task PhotoEditorOnAChange(SubtitleEditor.Editors.PhotoClipEditor photoEditor)
@@ -927,6 +936,7 @@
             photoClip.Data = photoEditor.SelectedImageData;
             photoClip.Size = photoEditor.Size;
             photoClip.BlendMode = photoEditor.BlendMode;
+            photoClip.Opacity = photoEditor.Opacity;
             photoClip.X = photoEditor.XPosition;
             photoClip.Y = photoEditor.YPosition;
             double duration(double h, double m, double s, double f)
@@ -948,7 +958,8 @@
             ClipEditorSource = photoEditor.SelectedImage;
             PhotoEditorData = photoEditor.SelectedImageData;
             GraphicEditorSize = photoEditor.Size;
-            ClipBlendMode = photoEditor.BlendMode;
+            ClipEditorBlendMode = photoEditor.BlendMode;
+            ClipEditorOpacity = photoEditor.Opacity;
             GraphicEditorXPosition = photoEditor.XPosition;
             GraphicEditorYPosition = photoEditor.YPosition;
             ClipEditorStartingHH = photoEditor.StartingHH;
@@ -981,6 +992,7 @@
             sectionBarControl.ResetMaxTime();
             videoClip.Size = videoEditor.Size;
             videoClip.BlendMode = videoEditor.BlendMode;
+            videoClip.Opacity = videoEditor.Opacity;
             videoClip.X = videoEditor.XPosition;
             videoClip.Y = videoEditor.YPosition;
             double duration(double h, double m, double s, double f)
@@ -1002,7 +1014,8 @@
             ClipEditorSource = videoEditor.SelectedVideo;
             VideoEditorData = videoEditor.SelectedVideoData;
             GraphicEditorSize = videoEditor.Size;
-            ClipBlendMode = videoEditor.BlendMode;
+            ClipEditorBlendMode = videoEditor.BlendMode;
+            ClipEditorOpacity = videoEditor.Opacity;
             GraphicEditorXPosition = videoEditor.XPosition;
             GraphicEditorYPosition = videoEditor.YPosition;
             ClipEditorStartingHH = videoEditor.StartingHH;

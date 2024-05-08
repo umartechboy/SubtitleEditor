@@ -624,7 +624,8 @@ namespace SubtitleEditor.SectionDef
 		public HybridSKBitmap[]? Data { get; set; }
 		public float Size { get; set; } = 100;
         public SKBlendMode BlendMode { get; set; } = SKBlendMode.SrcOver;
-		public float X { get; set; } = 50;
+        public int Opacity { get; set; } = 255;
+        public float X { get; set; } = 50;
 		public float Y { get; set; } = 50 * 9 / 16.0F;
 		public float fps { get; set; } = 30;
 		public override async Task RenderAsync(double position, SKCanvas canvas, RenderConfig config)
@@ -655,6 +656,7 @@ namespace SubtitleEditor.SectionDef
                     IsAntialias = true // enable antialiasing if needed
                 })
                 {
+                    paint.Color = paint.Color.WithAlpha((byte)Opacity);
                     canvas.DrawBitmap(bmp, new SKRect(r.Left, r.Top, r.Right, r.Bottom), paint);
                 }
 			}
@@ -692,6 +694,7 @@ namespace SubtitleEditor.SectionDef
         public SKBitmap Data { get; set; }
         public float Size { get; set; } = 100;
         public SKBlendMode BlendMode { get; set; } = SKBlendMode.SrcOver;
+        public int Opacity { get; set; } = 255;
         public float X { get; set; } = 50;
         public float Y { get; set; } = 50 * 9 / 16.0F;
         public PhotoClip(double start, double end) : base(start, end, "")
@@ -709,12 +712,15 @@ namespace SubtitleEditor.SectionDef
                 var y = Y - hei / 2;
                 RectangleF r = new RectangleF(x, y, wid, hei);
                 // Create an SKPaint with blend mode
-                SKPaint paint = new SKPaint
+                using (SKPaint paint = new SKPaint
                 {
                     BlendMode = this.BlendMode, // or any other Dodge blend mode you prefer
                     IsAntialias = true // enable antialiasing if needed
-                };
-                canvas.DrawBitmap(Data, new SKRect(r.Left, r.Top, r.Right, r.Bottom), paint);
+                })
+                {
+                    paint.Color = paint.Color.WithAlpha((byte)Opacity);
+                    canvas.DrawBitmap(Data, new SKRect(r.Left, r.Top, r.Right, r.Bottom), paint);
+                }
             }
         }
 		public override void OnPaintBefore(int layerIndex, int layersCount, double min, double max, int Width, int Height, Graphics g, double bMin, double bMax)
@@ -740,6 +746,7 @@ namespace SubtitleEditor.SectionDef
 			this.Color = System.Drawing.Color.FromArgb(255, 190, 11);
         }
         public SKBlendMode BlendMode { get; set; } = SKBlendMode.SrcOver;
+        public int Opacity { get; set; } = 255;
         void DrawWrapLines(float x, float y, string longLine, float lineLengthLimit, SKCanvas canvas, SKPaint defPaint, RenderConfig config)
         {
             var wrappedStrings = new List<string>();
@@ -821,9 +828,9 @@ namespace SubtitleEditor.SectionDef
                 DrawWrapLines(config.SubtitleLocation.X, config.SubtitleLocation.Y, Source, 90, canvas,
                 new SKPaint(config.SubTitlesFont)
                 {
-                    Color = config.SubtitleColor.WithAlpha((byte)(255 * opacity)),
+                    Color = config.SubtitleColor.WithAlpha((byte)(Opacity /*0-255*/ * opacity /*0-1*/)),
                     IsAntialias = true,
-                    BlendMode = this.BlendMode
+                    BlendMode = this.BlendMode,
                 }, config);
             }
         }

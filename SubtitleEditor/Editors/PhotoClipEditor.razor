@@ -44,13 +44,16 @@
         <MudSlider T="float" Value="@Size" ValueChanged="@OnSizeChanged" Immediate=true Min="1" Max="300">Size</MudSlider>
     </MudItem>
     <MudDivider DividerType="DividerType.FullWidth" />
-    <MudItem md="8" Class="py-0">
+    <MudItem md="6" Class="py-0">
         <MudSelect @bind-Value="@BlendMode" TextChanged="@OnATextChanged" Label="Blend Mode" Variant="Variant.Outlined">
             @foreach (var bm in blendModes)
             {
                 <MudSelectItem Value="@bm.Key">@bm.Value</MudSelectItem>
             }
         </MudSelect>
+    </MudItem>
+    <MudItem md="6" Class="py-0">
+        <MudSlider T="int" Value="@Opacity" ValueChanged="@OnOpacityChanged" Immediate=true Min="0" Max="255">Opacity</MudSlider>
     </MudItem>
     
     @if (!string.IsNullOrEmpty(SelectedImage))
@@ -82,19 +85,8 @@
     public float Size { get; set; }
     [Parameter]
     public SKBlendMode BlendMode { get; set; } = SKBlendMode.SrcOver;
-
-
-    Dictionary<SKBlendMode, string> blendModes = new Dictionary<SKBlendMode, string>
-    {
-    {SKBlendMode.SrcOver,"Normal"},
-    {SKBlendMode.ColorDodge, "Color Dodge"},
-    {SKBlendMode.Multiply, "Multiply"},
-    {SKBlendMode.ColorBurn, "Color Burn"},
-    {SKBlendMode.Difference, "Differnce"},
-    {SKBlendMode.Screen, "Screen"},
-    {SKBlendMode.Exclusion, "Excluion"},
-    {SKBlendMode.Darken, "Darken" }
-    };
+    [Parameter]
+    public int Opacity { get; set; } = 255;
     [Parameter]
     public float XPosition { get; set; }
     [Parameter]
@@ -135,6 +127,23 @@
     private async Task OnSizeChanged(float value) // Ensure correct casing (OnValueChanged)
     {
         Size = value;
+        await OnAChange.InvokeAsync(this);
+    }
+
+    Dictionary<SKBlendMode, string> blendModes = new Dictionary<SKBlendMode, string>
+    {
+    {SKBlendMode.SrcOver,"Normal"},
+    {SKBlendMode.ColorDodge, "Color Dodge"},
+    {SKBlendMode.Multiply, "Multiply"},
+    {SKBlendMode.ColorBurn, "Color Burn"},
+    {SKBlendMode.Difference, "Differnce"},
+    {SKBlendMode.Screen, "Screen"},
+    {SKBlendMode.Exclusion, "Excluion"},
+    {SKBlendMode.Darken, "Darken" }
+    };
+    private async Task OnOpacityChanged(int value) // Ensure correct casing (OnValueChanged)
+    {
+        Opacity = value;
         await OnAChange.InvokeAsync(this);
     }
     protected async Task ImageUploaderFilesSelected(IBrowserFile file)
