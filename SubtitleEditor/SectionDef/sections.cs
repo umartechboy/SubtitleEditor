@@ -8,6 +8,7 @@ namespace SubtitleEditor.SectionDef
     public class Clip : IDisposable
     {
         public string? Source { get; set; }
+        public string? Label { get; set; }
         protected int minZoom = 10;
         public bool selected = false;
         public delegate void OnDebugHandler(object sender, debugEventArgs e);

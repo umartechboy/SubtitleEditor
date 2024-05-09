@@ -19,6 +19,7 @@
 
   <ItemGroup>
     <Folder Include="wwwroot\fonts\" />
+    <Folder Include="wwwroot\user_data\" />
     <Folder Include="wwwroot\whisper\" />
   </ItemGroup>
 

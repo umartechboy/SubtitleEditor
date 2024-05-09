@@ -650,7 +650,7 @@ namespace SubtitleEditor.SectionDef
             else if (StretchingMode == VideoClipEditor.StretchingModes.Stretch)
             {
                 var fractionTimeToRender = (position - this.Start) / (End - Start);
-                var index = (int)Math.Round((Data.Length - 1) * fractionTimeToRender);
+                var index = (int)(Math.Round((Data.Length - 1) * fractionTimeToRender));
                 if (index >= 0 && index < Data.Length)
                     return index;
                 return -1;
@@ -663,7 +663,7 @@ namespace SubtitleEditor.SectionDef
                 if (index < 0) 
                     return -1;
                 while (index >= Data.Length)
-                    return index -= Data.Length;
+                    index -= Data.Length;
                 return index;
             }
         }
@@ -695,6 +695,7 @@ namespace SubtitleEditor.SectionDef
                     IsAntialias = true // enable antialiasing if needed
                 })
                 {
+                    Console.WriteLine("Render VideoClip: " + Source+" " + Label + ": " + indexToRender);
                     paint.Color = paint.Color.WithAlpha((byte)Opacity);
                     canvas.DrawBitmap(bmp, new SKRect(r.Left, r.Top, r.Right, r.Bottom), paint);
                 }
@@ -706,10 +707,9 @@ namespace SubtitleEditor.SectionDef
         {
             if (Data != null && position >= Start && position <= End)
             {
-                var fractionTimeToRender = (position - this.Start) / (End - Start);
-                var indexToRender = (int)Math.Round((Data.Length - 1) * fractionTimeToRender);
-
-                await Data[indexToRender].GetSKBimap();
+                var indexToRender = getIndex(position);
+                if (indexToRender >= 0)
+                    await Data[indexToRender].GetSKBimap();
             }
             else
             { }
@@ -718,10 +718,9 @@ namespace SubtitleEditor.SectionDef
         {
             if (Data != null && position >= Start && position <= End)
             {
-                var fractionTimeToRender = (position - this.Start) / (End - Start);
-                var indexToRender = (int)Math.Round((Data.Length - 1) * fractionTimeToRender);
-
-                Data[indexToRender].FreeALL();
+                var indexToRender = getIndex(position);
+                if (indexToRender >= 0)
+                    Data[indexToRender].FreeALL();
             }
             else
             { }
@@ -775,6 +774,7 @@ namespace SubtitleEditor.SectionDef
                     IsAntialias = true // enable antialiasing if needed
                 })
                 {
+                    Console.WriteLine("Render Photo: " + Source + " " + Label);
                     paint.Color = paint.Color.WithAlpha((byte)Opacity);
                     canvas.DrawBitmap(Data, new SKRect(r.Left, r.Top, r.Right, r.Bottom), paint);
                 }
@@ -959,7 +959,7 @@ namespace SubtitleEditor.SectionDef
             {
                 try
                 {
-                    Console.WriteLine("Get SKBitmap for: " + FFMpegFile);
+                    //Console.WriteLine("Get SKBitmap for: " + FFMpegFile);
                     var buffer = await FFMpeg?.ReadFile(FFMpegFile);
                     Bitmap = SKBitmap.Decode(buffer);
                 }

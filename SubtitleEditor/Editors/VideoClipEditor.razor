@@ -280,7 +280,7 @@
         GC.Collect();
         SelectedVideo = FFmpegFactory.CreateURLFromBuffer(inputFileDataBuffer, videoFileName, file.ContentType);
     }
-    async Task ConvertFFMpegToPngs(string videoFileSeed, string videoFileName)
+    public static async Task ConvertFFMpegToPngs(string videoFileSeed, string videoFileName)
     {
         //Pass CLI argument here equivalent to ffmpeg -i myFile.mp4 output.mp3
         await FFMpeg.Run("-i", videoFileName, "-vf", "fps=30", videoFileSeed + "_frames_%04d.png");

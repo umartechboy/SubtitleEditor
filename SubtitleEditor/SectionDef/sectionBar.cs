@@ -673,7 +673,7 @@ namespace SubtitleEditor.SectionDef
 
                 while ((ShowMax - ShowMin) / sResS * 5 > LayersSectionWidth)
                     sResS = stops[stops.IndexOf(sResS) + 1];
-                DEBUG(sResB.ToString() + ", " + sResS.ToString());
+                //DEBUG(sResB.ToString() + ", " + sResS.ToString());
                 g.FillRectangle(
                     Color.FromArgb(200, 200, 200),
                     0, zsw, LayersSectionWidth, zsw);
@@ -709,8 +709,8 @@ namespace SubtitleEditor.SectionDef
                             x, (int)(Height * 0.8) - sbh, x, Height - sbh
                             );
 
-                        float sw = g.MeasureString(s, "Consolas", 7).Width;
-                        g.DrawString(s, "Consolas", 7, bigL, new PointF(x - sw / 2, (float)(Height * 0.2) + zsw * 2));
+                        float sw = g.MeasureString(s, "ARIAL", 12).Width;
+                        g.DrawString(s, "ARIAL", 12, bigL, new PointF(x - sw / 2, (float)(Height * 0.2) + zsw * 2));
                     }
                     if (sResB != sResS && i % sResS == 0 && i % sResB != 0)
                     {
