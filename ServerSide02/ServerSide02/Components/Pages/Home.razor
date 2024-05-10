@@ -1,0 +1,82 @@
+﻿@page "/"
+@using SkiaSharp
+
+@rendermode InteractiveServer
+
+<PageTitle>NewHome</PageTitle>
+
+<h1>Counter 2</h1>
+
+<img src="@imgSrc" />
+
+<p role="status">Current count: @currentCount</p>
+
+<button class="btn btn-primary" @onmousemove="MouseMove" @onclick="IncrementCount">Click me</button>
+<WASMComponent></WASMComponent>
+@code {
+    private int currentCount = 0;
+    string imgSrc = "";
+    SKBitmap bmp;
+    SKCanvas canvas;
+    protected override void OnInitialized()
+    {
+        bmp = new SkiaSharp.SKBitmap(500, 500);
+        canvas = new SKCanvas(bmp);
+        int id = 0;
+        void startThread(int delay)
+        {
+            id++;
+            new Thread(async () =>
+            {
+                while (true)
+                {
+                    Thread.Sleep(delay);
+
+                    canvas.Clear(SKColors.Yellow);
+                    using (var font = new SKFont() { Size = 20 })
+                    {
+                        using (var paint = new SKPaint()
+                        {
+                            Color = SKColors.Blue
+                        })
+                        {
+                            canvas.DrawText(DateTime.Now.Millisecond.ToString(), 100, 100, SKTextAlign.Center, font, paint);
+                        }
+                    }
+                    imgSrc = ConvertToBase64String(bmp.Encode(SKEncodedImageFormat.Jpeg, 50).ToArray());
+                    await InvokeAsync(() => { StateHasChanged(); });
+                }
+            }).Start();
+        }
+        startThread(25);
+    }
+    public static string ConvertToBase64String(byte[] imageData)
+    {
+        string base64Image = Convert.ToBase64String(imageData);
+        // Optional: Construct data URI
+        string dataURI = $"data:image/jpeg;base64,{base64Image}";
+        return dataURI;
+    }
+    private void MouseMove(MouseEventArgs e)
+    {
+        currentCount++;
+        canvas.Clear(SKColors.Yellow);
+        using (var font = new SKFont() { Size = 20 })
+        {
+            using(var paint = new SKPaint()
+            {
+                Color = SKColors.Blue
+            })
+            {
+                canvas.DrawText(e.OffsetX.ToString(), (float)e.OffsetX, (float)e.OffsetY, SKTextAlign.Center, font, paint);
+            }
+        }
+        imgSrc = ConvertToBase64String(bmp.Encode(SKEncodedImageFormat.Jpeg, 50).ToArray());
+
+    }
+    
+    private void IncrementCount()
+    {
+        currentCount++;
+    }
+}
